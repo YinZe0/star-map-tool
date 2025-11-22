@@ -7,41 +7,54 @@ import (
 )
 
 type DNNDetectParam struct {
-	Img            *gocv.Mat
+	Img            gocv.Mat
 	ScoreThreshold float32
 	NMSThreshold   float32
 }
 
 type DNNDetector interface {
-	Detect(param *DNNDetectParam, filter ...int) ([]image.Rectangle, []int, bool)
+	Detect(param DNNDetectParam, filter ...int) ([]image.Rectangle, []int, bool)
 }
 
 type DNNDetectorImpl struct {
-	modePath string
+	modePath  string
+	modeBytes []byte
 }
 
-func NewDNNDetector(modePath string) DNNDetector {
+func NewDNNDetector(modePath string, modeBytes []byte) DNNDetector {
 	return &DNNDetectorImpl{
-		modePath: modePath,
+		modePath:  modePath,
+		modeBytes: modeBytes,
 	}
 }
 
-func NewDNNDetectParam(img *gocv.Mat, scoreThreshold float32, nmsThreshold float32) *DNNDetectParam {
-	return &DNNDetectParam{
+func NewDNNDetectParam(img gocv.Mat, scoreThreshold float32, nmsThreshold float32) DNNDetectParam {
+	return DNNDetectParam{
 		Img:            img,
 		ScoreThreshold: scoreThreshold,
 		NMSThreshold:   nmsThreshold,
 	}
 }
 
-func (d *DNNDetectorImpl) Detect(param *DNNDetectParam, filter ...int) ([]image.Rectangle, []int, bool) {
+func (d *DNNDetectorImpl) Detect(param DNNDetectParam, filter ...int) ([]image.Rectangle, []int, bool) {
 	modePath := d.modePath
+	modeFile := d.modeBytes
 	img := param.Img
 	scoreThreshold := param.ScoreThreshold // 当前测试用的0.4
 	nmsThreshold := param.NMSThreshold     // 当前测试用的0.45
 
 	// 加载模型
-	net := gocv.ReadNetFromONNX(modePath)
+	var net gocv.Net
+	if len(modeFile) > 0 {
+		n, err := gocv.ReadNetFromONNXBytes(modeFile)
+		if err != nil {
+			panic(err)
+		} else {
+			net = n
+		}
+	} else {
+		net = gocv.ReadNetFromONNX(modePath)
+	}
 	if net.Empty() {
 		panic("Error loading ONNX model")
 	}
@@ -50,12 +63,12 @@ func (d *DNNDetectorImpl) Detect(param *DNNDetectParam, filter ...int) ([]image.
 	defer net.Close()
 
 	// 图像转为模型需要的形式
-	blob := gocv.BlobFromImage(*img, 1.0/255.0, image.Pt(1024, 1024), gocv.NewScalar(0, 0, 0, 0), true, false)
+	blob := gocv.BlobFromImage(img, 1.0/255.0, image.Pt(1024, 1024), gocv.NewScalar(0, 0, 0, 0), true, false)
 	defer blob.Close()
 	net.SetInput(blob, "")
 
 	// 推理
-	outputNames := getOutputNames(&net)
+	outputNames := getOutputNames(net)
 	if len(outputNames) == 0 {
 		return nil, nil, false
 	}
@@ -110,7 +123,7 @@ func performDetection(outs *[]gocv.Mat, imgW, imgH int, scoreThreshold float32) 
 		scaleX := float32(imgW) / inputSize
 		scaleY := float32(imgH) / inputSize
 		for i := 0; i < out.Rows(); i++ {
-			confidence, classId := getScoreAndClassId(&out, i)
+			confidence, classId := getScoreAndClassId(out, i)
 			if confidence < scoreThreshold {
 				continue
 			}
@@ -134,7 +147,7 @@ func performDetection(outs *[]gocv.Mat, imgW, imgH int, scoreThreshold float32) 
 	return boxes, confidences, classIds
 }
 
-func getOutputNames(net *gocv.Net) []string {
+func getOutputNames(net gocv.Net) []string {
 	var outputLayers []string
 	for _, i := range net.GetUnconnectedOutLayers() {
 		layer := net.GetLayer(i)
@@ -147,7 +160,7 @@ func getOutputNames(net *gocv.Net) []string {
 	return outputLayers
 }
 
-func getScoreAndClassId(out *gocv.Mat, row int) (float32, int) {
+func getScoreAndClassId(out gocv.Mat, row int) (float32, int) {
 	// x, y, w, h, class1_score, class2_score, class3_score...
 
 	cols := out.Cols()

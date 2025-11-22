@@ -2,6 +2,7 @@ package listener
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -57,7 +58,8 @@ func (l *Listener) run0() {
 		}
 	})
 
-	log.Println("[状态控制器] 状态控制器已装载 F9:开始 F10:结束")
+	fmt.Println("[状态控制器] 状态控制器已装载 F9:开始 F10:结束")
+	fmt.Printf("\n")
 
 	chain := hook.Start()
 	defer func() {

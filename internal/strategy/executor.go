@@ -58,20 +58,20 @@ func (e *Executor) Execute(config *ExecutionConfig, strategy Strategy, data inte
 		}
 
 		elapsed := time.Since(start)
-		log.Printf("[执行器] 本轮耗时:%d", int(elapsed.Seconds()))
+		log.Printf("[执行器] 本轮耗时%d秒", int(elapsed.Seconds()))
 		log.Printf("[执行器] 已执行%d轮 成功%d轮 失败%d轮\n", e.result.times, e.result.success, e.result.fail)
 		time.Sleep(config.Interval)
 	}
 }
 
-func (e *Executor) execute0(ctx context.Context, strategy Strategy, sctx *StrategyContext, data interface{}) int32 {
+func (e *Executor) execute0(ctx context.Context, strategy Strategy, sctx *StrategyContext, data any) int32 {
 	done := make(chan bool, 1)
 	defer close(done)
 	start := time.Now()
 
 	go func() {
 		ok := strategy.Execute(sctx, data)
-		sctx.Game.ReleaseAllKey()
+		game.ReleaseAllKey()
 		done <- ok
 	}()
 
@@ -83,13 +83,13 @@ func (e *Executor) execute0(ctx context.Context, strategy Strategy, sctx *Strate
 
 		var reason int32
 		if errors.Is(err, context.DeadlineExceeded) {
-			strategy.Abort(STRATEGY_EVENT_TIMEOUT)
+			strategy.Abort(STRATEGY_EVENT_TIMEOUT) // 异步通知正在执行的线程应该停止了(停止是需要时间的)
 			reason = STRATEGY_REASON_TIMEOUT
 		} else {
 			strategy.Abort(STRATEGY_EVENT_OTHER)
 			reason = STRATEGY_REASON_OTHER
 		}
-
+		<-done // 等待子线程返回执行成功或者停止成功的信号
 		return reason
 	case result := <-done:
 		if result {

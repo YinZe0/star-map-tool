@@ -3,6 +3,7 @@ package script
 import (
 	"context"
 	"errors"
+	"log"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,7 @@ type Script interface {
 	Tap(key string, times int, interval int) Operation
 
 	Scroll(x int, direction string) Operation
+	MouseClient() Operation
 	MouseMove(x, Y int) Operation
 	MouseMoveClick(x, y int) Operation
 	ChangeCameraAngleForX(x int, y int, angle int, baseline float32) Operation
@@ -40,6 +42,7 @@ type Script interface {
 
 	Wait(duration int) Operation
 	ExecTask(task func(*strategy.StrategyContext) (bool, error), getsctx func() *strategy.StrategyContext) Operation
+	Log(name string, mode string, message string) Operation
 }
 
 type Operation func() bool
@@ -149,6 +152,13 @@ func (s *DefaultScript) Scroll(x int, direction string) Operation {
 	}
 }
 
+func (s *DefaultScript) MouseClient() Operation {
+	return func() bool {
+		robotgo.Click()
+		return true
+	}
+}
+
 func (s *DefaultScript) MouseMove(x, Y int) Operation {
 	return func() bool {
 		robotgo.Move(x, Y)
@@ -196,6 +206,13 @@ func (s *DefaultScript) ExecTask(task func(*strategy.StrategyContext) (bool, err
 			return false
 		}
 		return ok
+	}
+}
+
+func (s *DefaultScript) Log(name string, mode string, message string) Operation {
+	return func() bool {
+		log.Printf("[%s-%s] %s\n", name, mode, message)
+		return true
 	}
 }
 
@@ -271,7 +288,7 @@ func MoveCircle(duration int, interval int, signal *int32) bool {
 	var state int32 = 1
 
 	start := time.Now()
-	ok := utils.NewTicker(time.Duration(duration)*time.Millisecond, time.Duration(interval)*time.Millisecond, func() (bool, error) {
+	ok, _ := utils.NewTicker(time.Duration(duration)*time.Millisecond, time.Duration(interval)*time.Millisecond, func() (bool, error) {
 		if val := atomic.LoadInt32(signal); val == 1 {
 			return true, nil // 收到通知就停下
 		}
@@ -321,25 +338,48 @@ func MoveSide(direction int, interval int, speed int, stop chan int) bool {
 	var stepList []string
 	switch direction {
 	case -1:
-		stepList = []string{"a,w", "w,a", "w"}
+		// stepList = []string{"a,w", "w,a", "w"}
+		stepList = []string{"a,w", "w", "w"}
 	case 1:
-		stepList = []string{"d,w", "w,d", "w"}
+		// stepList = []string{"d,w", "w,d", "w"} // 游戏有设计问题，光剑回到墙外边，即使人经过指定区域也不会判定生效
+		stepList = []string{"d,w", "w", "w"}
 	}
 
+	x, y := robotgo.Location()
+	getCurrStepIndex := func(t int) int {
+		if t >= 3 {
+			return t % 3
+		} else {
+			return t
+		}
+	}
+	getPrevStepIndex := func(t int) int {
+		if t == 0 {
+			return 0
+		} else if t <= 2 {
+			return t - 1
+		}
+
+		r := t % 3
+		if r == 0 {
+			return 2
+		} else {
+			r = r - 1
+		}
+		return r
+	}
 	move := func(stepList []string, times int) {
 		speedKey := speedList[speed+1]
 		if len(stepList) > 0 {
 			robotgo.KeyUp(speedKey)
 		}
-		if times-1 >= 0 {
-			prevKeys := stepList[times-1]
-			list := strings.Split(prevKeys, ",")
-			for _, k := range list {
-				robotgo.KeyUp(k)
-			}
+		prevKeys := stepList[getPrevStepIndex(times)]
+		list := strings.SplitSeq(prevKeys, ",")
+		for k := range list {
+			robotgo.KeyUp(k)
 		}
-		currKeys := stepList[times]
-		list := strings.SplitSeq(currKeys, ",")
+		currKeys := stepList[getCurrStepIndex(times)]
+		list = strings.SplitSeq(currKeys, ",")
 		for k := range list {
 			robotgo.KeyDown(k)
 		}
@@ -360,12 +400,11 @@ func MoveSide(direction int, interval int, speed int, stop chan int) bool {
 			}
 			return true
 		case <-ticker.C:
-			move(stepList, times)
-
-			times++
-			if times >= 3 {
-				times = 0
+			if times > 0 {
+				ChangeCameraAngleForX(x, y, -direction*24, 3.24)
 			}
+			move(stepList, times)
+			times++
 		}
 	}
 }

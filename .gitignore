@@ -1,5 +1,8 @@
 build/
 go.sum
+*.exe
+cmd/maptool/*.png
+cmd/maptool/*.jpg
 
 ### VS Code ###
 .vscode/

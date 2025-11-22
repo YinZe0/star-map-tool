@@ -9,7 +9,7 @@ import (
 )
 
 type TemplateDetectParam struct {
-	Img            *gocv.Mat
+	Img            gocv.Mat
 	TemplateName   string
 	ScoreThreshold float32
 }
@@ -19,19 +19,19 @@ type TemplateDetector interface {
 }
 
 type TemplateDetectorImpl struct {
-	templates map[string]*gocv.Mat
+	templates map[string]gocv.Mat
 }
 
 // 不推荐使用模板匹配，非常容易收到各类因素影响而无法识别（比较标准颜色、尺寸的图标可以使用局部截取后识别）
 func NewTemplateDetector(templateDir string) TemplateDetector {
 	d := &TemplateDetectorImpl{
-		templates: make(map[string]*gocv.Mat),
+		templates: make(map[string]gocv.Mat),
 	}
 	loadTemplates(d, templateDir)
 	return d
 }
 
-func NewTemplateDetectParam(img *gocv.Mat, templateName string, scoreThreshold float32) *TemplateDetectParam {
+func NewTemplateDetectParam(img gocv.Mat, templateName string, scoreThreshold float32) *TemplateDetectParam {
 	return &TemplateDetectParam{
 		Img:            img,
 		TemplateName:   templateName,
@@ -48,7 +48,7 @@ func (d *TemplateDetectorImpl) Detect(param *TemplateDetectParam) (*image.Rectan
 	defer result.Close()
 
 	template := getTemplateByName(d, templateName)
-	gocv.MatchTemplate(*img, *template, &result, gocv.TmCcoeffNormed, gocv.NewMat())
+	gocv.MatchTemplate(img, template, &result, gocv.TmCcoeffNormed, gocv.NewMat())
 
 	_, maxVal, _, maxLoc := gocv.MinMaxLoc(result)
 	if maxVal < scoreThreshold {
@@ -78,11 +78,11 @@ func loadTemplates(d *TemplateDetectorImpl, templateDir string) {
 		}
 
 		name := filepath.Base(file)
-		d.templates[name] = &template
+		d.templates[name] = template
 	}
 }
 
-func getTemplateByName(d *TemplateDetectorImpl, name string) *gocv.Mat {
+func getTemplateByName(d *TemplateDetectorImpl, name string) gocv.Mat {
 	template, ok := d.templates[name]
 	if !ok {
 		panic("[匹配器] 未找到对应图片模板!")

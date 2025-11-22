@@ -2,8 +2,8 @@ package game
 
 import (
 	"errors"
+	"fmt"
 	"image"
-	"log"
 	"time"
 
 	"github.com/go-vgo/robotgo"
@@ -52,15 +52,12 @@ func (g *Game) Initialize() bool {
 	if err != nil {
 		return false
 	}
-	log.Printf("[初始器] 当前游戏窗口标题:%s 进程ID:%d 进程名称:%s\n", g.Title, g.Pid, g.Name)
+	fmt.Printf("[初始器] 当前游戏窗口标题:%s 进程ID:%d 进程名称:%s\n", g.Title, g.Pid, g.Name)
 
 	g.Active()
 	time.Sleep(time.Duration(1) * time.Second)
 	g.GetRect()
-	if _, err := g.Resize(width, height); err != nil {
-		log.Printf("[初始器] %s\n", err.Error())
-		return false
-	}
+	g.Resize(width, height)
 	return true
 }
 
@@ -75,7 +72,7 @@ func (g *Game) GetPid() (int, error) {
 
 	pidList, err := robotgo.FindIds(g.Name)
 	if err != nil || len(pidList) <= 0 {
-		log.Println("[初始器] 未发现目标游戏进程, 请启动游戏后重试!")
+		fmt.Println("[初始器] 未发现目标游戏进程, 请启动游戏后重试!")
 		return -1, errors.New("未发现目标游戏进程")
 	}
 
@@ -98,7 +95,7 @@ func (g *Game) GetRect() (*GameRect, error) {
 	return rect, nil
 }
 
-func (g *Game) GetScreenshot(args ...int) *image.Image {
+func (g *Game) GetScreenshot(args ...int) image.Image {
 	length := len(args)
 	if !(length == 0 || length == 4) {
 		panic("参数数量错误!")
@@ -111,38 +108,38 @@ func (g *Game) GetScreenshot(args ...int) *image.Image {
 	} else {
 		bitmap = robotgo.CaptureScreen(args[0], args[1], args[2], args[3])
 	}
-
 	defer robotgo.FreeBitmap(bitmap)
+
 	image := robotgo.ToImage(bitmap)
-	return &image
+	return image
 }
 
-func (g *Game) GetScreenshotMatRGB(args ...int) (*gocv.Mat, error) {
+func (g *Game) GetScreenshotMatRGB(args ...int) (gocv.Mat, error) {
 	image := g.GetScreenshot(args...)
 
-	mat, err := gocv.ImageToMatRGB(*image) // 调用层必须要关闭，不然会内存泄露
-	return &mat, err
+	mat, err := gocv.ImageToMatRGB(image) // 调用层必须要关闭，不然会内存泄露
+	return mat, err                       // 选择直接值传递回去
 }
 
-func (g *Game) Resize(w int32, h int32) (bool, error) {
+func (g *Game) Resize(w int32, h int32) bool {
 	screenWidth, screenHeight := robotgo.GetScreenSize()
 	rect := g.Rect
-	log.Printf("[初始器] 当前屏幕分辨率: %d x %d 游戏窗口大小: %d x %d\n", screenWidth, screenHeight, rect.w, rect.h)
+	fmt.Printf("[初始器] 当前屏幕分辨率: %d x %d 游戏窗口大小: %d x %d\n", screenWidth, screenHeight, rect.w, rect.h)
 
 	hwnd := robotgo.FindWindow(g.Title)
 	val := win.SetWindowPos(hwnd, win.HWND_TOP, 0, 0, w, h, win.SWP_SHOWWINDOW)
 	if !val {
-		return false, errors.New("调整窗口大小失败")
+		panic("调整游戏窗口大小失败")
 	}
 
 	g.refreshRect()
 
 	rect = g.Rect
-	log.Printf("[初始器] 变更后游戏窗口大小: %d x %d\n", rect.w, rect.h)
-	return val, nil
+	fmt.Printf("[初始器] 变更后游戏窗口大小: %d x %d\n", rect.w, rect.h)
+	return val
 }
 
-func (g *Game) ReleaseAllKey() {
+func ReleaseAllKey() {
 	for _, key := range MoveKeys {
 		robotgo.KeyUp(key)
 	}

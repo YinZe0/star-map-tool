@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"star-map-tool/internal/game"
+	"sync"
 )
 
 type Strategy interface {
@@ -13,12 +14,12 @@ type Strategy interface {
 }
 
 type StrategyContext struct {
-	Game  *game.Game
-	Attrs map[string]any // 不限制存储内容，如果是大型value，自动写入指针
+	Game   *game.Game
+	Attrs  map[string]any // 不限制存储内容，如果是大型value，自动写入指针
+	RWLock sync.RWMutex   // 提供对于 Attrs 的读写锁，可供其安全读写
 
 	DeathCheckFlag int32 // 0关闭、1打开
-	// State  int32
-	// Reason int32
+	Step           int32 // 策略执行进度
 }
 
 // 成功、超时、终止、其它

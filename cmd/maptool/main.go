@@ -1,57 +1,63 @@
 package main
 
 import (
+	"bufio"
 	"context"
-	"flag"
 	"fmt"
-	"log"
+	"os"
 	"star-map-tool/internal/game"
 	"star-map-tool/internal/listener"
 	"star-map-tool/internal/strategy"
 	"star-map-tool/internal/strategy/strategies/sbsc2"
+	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/go-vgo/robotgo"
 	"github.com/tailscale/win"
 )
 
+var (
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+
+	procSetConsoleTitleW = kernel32.NewProc("SetConsoleTitleW")
+)
+
 type Config struct {
-	Map      string
-	Mode     string
-	Times    int
-	Timeout  int
-	Interval int
+	Map         string
+	Mode        string
+	Times       int
+	Timeout     int
+	Interval    int
+	Description string
+}
+
+const Title string = "星痕共鸣-S2刷图工具"
+
+var Options []Config = []Config{
+	{Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
 	registry.Register(sbsc2.NewSbsc2Strategy())
 }
 
-func resizeCli() {
-	// title := robotgo.GetTitle()
-	title := "管理员: Windows PowerShell"
-
-	hwnd := robotgo.FindWindow(title)
-	val := win.SetWindowPos(hwnd, win.HWND_TOP, 1280, 0, 1920-1280, 800, win.SWP_SHOWWINDOW)
-	if !val {
-		panic("调整窗口大小失败")
-	}
-}
-
 func main() {
-	config := parseFlags()
-	if err := validateConfig(config); err != nil {
-		log.Printf("[启动器] 配置错误: %v\n", err)
-		return
-	}
-	log.Printf("[启动器] 参数识别 [地图:%s] [模式:%s] [次数:%d] [单轮限时分钟数:%d] [下一轮开始前等待秒数:%d]\n",
+	defer handlePanic()
+
+	SetConsoleTitle(Title)
+	showReadMe()
+	config := parseScan()
+
+	fmt.Printf("[启动器] 参数识别 [地图:%s] [模式:%s] [次数:%d] [单轮限时分钟数:%d] [下一轮开始前等待秒数:%d]\n",
 		config.Map, config.Mode, config.Times, config.Timeout, config.Interval)
 	resizeCli()
+	showMapDescripion(config)
 
 	// 游戏窗体 或 进程
 	game, err := game.NewGame("Star.exe", "星痕共鸣")
 	if err != nil {
-		log.Println("[启动器] ", err)
+		fmt.Println("[启动器] ", err)
 		return
 	}
 	if ok := game.Initialize(); !ok {
@@ -87,28 +93,98 @@ func main() {
 	}
 }
 
-func parseFlags() Config {
-	var options Config
+func parseScan() Config {
+	var index int
+	var times int
 
-	flag.StringVar(&options.Map, "map", "衰败深处", "地图 (默认: 衰败深处) ")
-	flag.StringVar(&options.Mode, "mode", "困难", "模式 (默认: 普通)")
-	flag.IntVar(&options.Times, "times", 999, "进行次数 (默认: 999)")
-	flag.IntVar(&options.Timeout, "timeout", 10, "单轮限时分钟数 (默认: 11分钟) 超时后将自动P本进行下一轮")
-	flag.IntVar(&options.Interval, "interval", 15, "每轮间隔秒数 (默认: 15秒)")
+	fmt.Println("当前支持的地图: ")
+	fmt.Println("1. 衰败深处 (困难)")
+	for {
+		fmt.Print("请选择目标地图(按下回车确认): ")
+		fmt.Scanln(&index)
+		if index <= 0 || index > 1 {
+			fmt.Println("尚未支持目标地图")
+			continue
+		} else {
+			break
+		}
+	}
+	option := Options[index-1]
 
-	flag.Parse()
-	return options
+	for {
+		fmt.Print("要进行的次数(默认:999): ")
+		fmt.Scanln(&times)
+		if times == 0 {
+			times = option.Times
+			break
+		}
+		if times < 1 || times > 999 {
+			fmt.Println("请输入1~999范围内的次数")
+			continue
+		} else {
+			break
+		}
+	}
+	option.Times = times
+	fmt.Printf("\n\n")
+
+	return option
 }
 
-func validateConfig(config Config) error {
-	if config.Times < 1 || config.Times > 999 {
-		return fmt.Errorf("进行次数必须在 1 到 999 之间")
-	}
-	if config.Timeout < 1 || config.Timeout > 20 {
-		return fmt.Errorf("单轮限时分钟数必须在 1 到 20 之间")
-	}
-	if config.Interval < 10 || config.Interval > 60 {
+func showReadMe() {
+	fmt.Println("声明: 本软件仅供个人学习使用, 代码已在Github开源。")
+	fmt.Println("软件使用须知: ")
+	fmt.Println("- 请通过Github下载已发布的exe程序,以防不明途径来源软件的病毒攻击")
+	fmt.Println("- 由于需要调整游戏程序窗体大小,需右键以管理员身份运行")
+	fmt.Println("- 请将游戏改为任意分辨率窗口化")
+	fmt.Println("- 请将游戏图像质量改为-流畅")
+	fmt.Println("- 请将自动攻击设置为仅普攻")
+	fmt.Println("- 设置 > 画面 > 表现设置 (所有内容改为关闭、极简)")
+	fmt.Println("- 设置 > 操控 > PC 操作设置 (镜头水平灵敏度、镜头垂直灵敏度=3)")
+	fmt.Println("补充: ")
+	fmt.Println("- 程序完全基于图像识别进行, 使用时切换窗口会影响副本流程;")
+	fmt.Println("- 程序使用时会占用键盘、鼠标, 使用期间自行操控可能遇到程序抢手现象;")
+	fmt.Println("- 使用结束后, 请按正常流程退出本软件 (按下F10 -> 等待F10执行结束 -> 关闭命令窗口);")
+	fmt.Println("- 退出本软件后, 如果遇到键盘、鼠标的不合理行为, 可通过切换窗口/重启/注销电脑解决;")
+	fmt.Println("- 不同的副本有各自的职业要求, 请在选择地图后查看详情描述, 未按要求进行会降低刷图成功率;")
+	fmt.Printf("\n\n")
+}
 
+func showMapDescripion(config Config) {
+	description := "无要求"
+	if len(config.Description) > 0 {
+		description = config.Description
 	}
-	return nil
+
+	fmt.Printf("本地图需注意: %s\n", description)
+}
+
+func SetConsoleTitle(title string) {
+	titlePtr, err := syscall.UTF16PtrFromString(title)
+	if err != nil {
+		panic("获取窗口标题失败")
+	}
+	ret, _, _ := procSetConsoleTitleW.Call(uintptr(unsafe.Pointer(titlePtr)))
+	if ret == 0 {
+		panic("修改窗口标题失败")
+	}
+}
+
+func resizeCli() {
+	hwnd := robotgo.FindWindow(Title)
+	val := win.SetWindowPos(hwnd, win.HWND_TOP, 1280, 0, 1920-1280, 800, win.SWP_SHOWWINDOW)
+	if !val {
+		panic("调整当前窗口大小失败")
+	}
+}
+
+func handlePanic() {
+	if r := recover(); r != nil {
+		game.ReleaseAllKey()
+		fmt.Println("\n============ 异常捕获 ===============")
+		fmt.Printf("异常信息: %v\n", r)
+
+		fmt.Print("按任意键退出程序...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+	}
 }
