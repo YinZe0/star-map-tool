@@ -133,6 +133,7 @@ func parseScan() Config {
 
 func showReadMe() {
 	fmt.Println("声明: 本软件仅供个人学习使用, 代码已在Github开源。")
+	fmt.Println("https://github.com/YinZe0/star-map-tool")
 	fmt.Println("软件使用须知: ")
 	fmt.Println("- 请通过Github下载已发布的exe程序,以防不明途径来源软件的病毒攻击")
 	fmt.Println("- 由于需要调整游戏程序窗体大小,需右键以管理员身份运行")
