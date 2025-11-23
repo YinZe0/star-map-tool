@@ -1,4 +1,4 @@
-package sbsc2
+package yscx2
 
 import (
 	"image"
@@ -25,33 +25,13 @@ var (
 	DungeonRunningArea  = []int{1194, 52, 1250, 67}
 	DungeonRunningColor = []color.RGBA{{0, 0, 155, 0}, {225, 225, 255, 0}}
 
-	// 中间 - 开门的光剑
-	Sword1Area  = []int{288, 192, 958, 721}
-	Sword1Color = []color.RGBA{{20, 40, 200, 0}, {40, 90, 255, 0}}
-
 	// 中下 - 角色血条
 	PlayerHealthArea  = []int{471, 751, 808, 773}
 	PlayerHealthColor = []color.RGBA{{0, 190, 255, 0}, {80, 225, 255, 0}}
 
-	// // 中下 - 角色血条
-	// PlayerHealthArea  = []int{471, 751, 638, 773}
-	// PlayerHealthColor = []color.RGBA{{60, 190, 255, 0}, {80, 225, 255, 0}}
-
-	// // 中下 - 角色耐力条
-	// PlayerStaminaArea  = []int{639, 751, 808, 773}
-	// PlayerStaminaColor = []color.RGBA{{0, 190, 255, 0}, {25, 225, 255, 0}}
-
-	// 中上 - BOSS站姿时角的识别
-	BossArea       = []int{520, 60, 770, 330}
-	BossRangeColor = []color.RGBA{{167, 157, 153, 0}, {255, 255, 255, 0}}
-
 	// 中上 - 红色血条
 	BossHealth      = []int{494, 51, 799, 72}
 	BossHealthColor = []color.RGBA{{0, 236, 244, 0}, {25, 255, 255, 0}}
-
-	// 中上 - 灰色血条
-	BossGrayHealthArea  = []int{494, 51, 799, 72}
-	BossGrayHealthColor = []color.RGBA{{0, 0, 159, 0}, {0, 0, 174, 0}}
 
 	// 中下 - 结算界面下一步按钮
 	NextArea  = []int{535, 697, 727, 736}
@@ -108,33 +88,14 @@ func GetDungeonRunningArea(game game.Game, colorDetector detector.ColorDetector)
 	return colorDetector.Detect(params)
 }
 
-// 获取第一个关卡的开门钥匙标志
-func GetSwordKey1Area(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
-	w, h := utils.GetRectSize(Sword1Area[0], Sword1Area[1], Sword1Area[2], Sword1Area[3])
-	mat, _ := game.GetScreenshotMatRGB(Sword1Area[0], Sword1Area[1], w, h)
-	defer mat.Close()
-
-	param := detector.NewColorDetectParam(mat, Sword1Color[0], Sword1Color[1], 60)
-	return colorDetector.Detect(param)
-}
-
 // 获取玩家血条标志
 func GetPlayerHealthArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
 	w, h := utils.GetRectSize(PlayerHealthArea[0], PlayerHealthArea[1], PlayerHealthArea[2], PlayerHealthArea[3])
 	img, _ := game.GetScreenshotMatRGB(PlayerHealthArea[0], PlayerHealthArea[1], w, h)
 	defer img.Close()
+
 	params := detector.NewColorDetectParam(img, PlayerHealthColor[0], PlayerHealthColor[1], 5)
 	return colorDetector.Detect(params)
-}
-
-// 获取Boss标志（由于没有对Boss站姿进行训练，只能通过识别角的颜色来进行处理）
-func GetBossArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
-	w, h := utils.GetRectSize(BossArea[0], BossArea[1], BossArea[2], BossArea[3])
-	img, _ := game.GetScreenshotMatRGB(BossArea[0], BossArea[1], w, h)
-	defer img.Close()
-
-	param := detector.NewColorDetectParam(img, BossRangeColor[0], BossRangeColor[1], 20)
-	return colorDetector.Detect(param)
 }
 
 // 获取Boss红色血条
@@ -144,16 +105,6 @@ func GetBossHealth(game game.Game, colorDetector detector.ColorDetector) ([]imag
 	defer img.Close()
 
 	param := detector.NewColorDetectParam(img, BossHealthColor[0], BossHealthColor[1], 1)
-	return colorDetector.Detect(param)
-}
-
-// 获取Boss灰色血条（无敌状态下）
-func GetBossGrayHealth(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
-	w, h := utils.GetRectSize(BossGrayHealthArea[0], BossGrayHealthArea[1], BossGrayHealthArea[2], BossGrayHealthArea[3])
-	mat, _ := game.GetScreenshotMatRGB(BossGrayHealthArea[0], BossGrayHealthArea[1], w, h)
-	defer mat.Close()
-
-	param := detector.NewColorDetectParam(mat, BossGrayHealthColor[0], BossGrayHealthColor[1], 300)
 	return colorDetector.Detect(param)
 }
 

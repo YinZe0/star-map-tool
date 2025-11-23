@@ -9,6 +9,7 @@ import (
 	"star-map-tool/internal/listener"
 	"star-map-tool/internal/strategy"
 	"star-map-tool/internal/strategy/strategies/sbsc2"
+	"star-map-tool/internal/strategy/strategies/yscx2"
 	"syscall"
 	"time"
 	"unsafe"
@@ -36,10 +37,12 @@ const Title string = "星痕共鸣-S2刷图工具"
 
 var Options []Config = []Config{
 	{Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	{Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "无"},
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
 	registry.Register(sbsc2.NewSbsc2Strategy())
+	registry.Register(yscx2.NewYscx2Strategy())
 }
 
 func main() {
@@ -98,11 +101,13 @@ func parseScan() Config {
 	var times int
 
 	fmt.Println("当前支持的地图: ")
-	fmt.Println("1. 衰败深处 (困难)")
+	for i, o := range Options {
+		fmt.Printf("%d. %s (%s)\n", i+1, o.Map, o.Mode)
+	}
 	for {
 		fmt.Print("请选择目标地图(按下回车确认): ")
 		fmt.Scanln(&index)
-		if index <= 0 || index > 1 {
+		if index <= 0 || index > len(Options) {
 			fmt.Println("尚未支持目标地图")
 			continue
 		} else {
@@ -138,10 +143,10 @@ func showReadMe() {
 	fmt.Println("- 请通过Github下载已发布的exe程序,以防不明途径来源软件的病毒攻击")
 	fmt.Println("- 由于需要调整游戏程序窗体大小,需右键以管理员身份运行")
 	fmt.Println("- 请将游戏改为任意分辨率窗口化")
-	fmt.Println("- 请将游戏图像质量改为-流畅")
-	fmt.Println("- 请将自动攻击设置为仅普攻")
+	fmt.Println("- 设置自动攻击时,尽量不要设置长时间在场的幻想技能,可能会遮挡目标识别")
 	fmt.Println("- 设置 > 画面 > 表现设置 (所有内容改为关闭、极简)")
 	fmt.Println("- 设置 > 操控 > PC 操作设置 (镜头水平灵敏度、镜头垂直灵敏度=3)")
+	fmt.Println("- 暂无画质要求 (推荐最低画质)")
 	fmt.Println("补充: ")
 	fmt.Println("- 程序完全基于图像识别进行, 使用时切换窗口会影响副本流程;")
 	fmt.Println("- 程序使用时会占用键盘、鼠标, 使用期间自行操控可能遇到程序抢手现象;")

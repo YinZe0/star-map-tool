@@ -34,7 +34,7 @@ type Script interface {
 	Tap(key string, times int, interval int) Operation
 
 	Scroll(x int, direction string) Operation
-	MouseClient() Operation
+	MouseClick() Operation
 	MouseMove(x, Y int) Operation
 	MouseMoveClick(x, y int) Operation
 	ChangeCameraAngleForX(x int, y int, angle int, baseline float32) Operation
@@ -152,7 +152,7 @@ func (s *DefaultScript) Scroll(x int, direction string) Operation {
 	}
 }
 
-func (s *DefaultScript) MouseClient() Operation {
+func (s *DefaultScript) MouseClick() Operation {
 	return func() bool {
 		robotgo.Click()
 		return true

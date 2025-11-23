@@ -158,6 +158,7 @@ func (s *Sbsc2Strategy) exitDungeon() {
 }
 
 func (s *Sbsc2Strategy) handleBossScence() []script.Operation {
+	x, y := robotgo.Location()
 	return []script.Operation{
 		// 检测是否进入boss房间
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -173,11 +174,8 @@ func (s *Sbsc2Strategy) handleBossScence() []script.Operation {
 		s.script.Wait(4_000),
 
 		// 开怪
-		s.script.Move([]string{"w", "shift"}, 1500),
-		s.script.TapOnce("h"),
-		s.script.Wait(5_000),
-		s.script.TapOnce("h"),
-		s.script.Move([]string{"s", "shift"}, 1500),
+		s.script.Move([]string{"w", "shift"}, 300),
+		s.script.TapOnce("h"), // 问题是Boss有秒杀技
 
 		// 持续检查是否进入二阶段
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -185,12 +183,17 @@ func (s *Sbsc2Strategy) handleBossScence() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetBossGrayHealth(*sctx.Game, s.colorDetector)
+				_, _, ok := GetRebirthLightArea(*sctx.Game, s.colorDetector)
+				if ok {
+					robotgo.MoveClick(1123, 700)
+				}
+				_, _, ok = GetBossGrayHealth(*sctx.Game, s.colorDetector)
 				return ok, nil
 			}, true)
 			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.Wait(1000),
+		s.script.Wait(200),
+		s.script.TapOnce("h"), // 过场动画中关H没用，得在外面关
 		s.script.ExecTask(func(scxt *strategy.StrategyContext) (bool, error) {
 			s.StartDeathCheck(scxt)
 			return true, nil
@@ -238,6 +241,13 @@ func (s *Sbsc2Strategy) handleBossScence() []script.Operation {
 			s.StopDeathCheck(scxt)
 			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
+		s.script.TapOnce("h"),
+		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
+			for range 7 {
+				script.ChangeCameraAngleForX(x, y, -50, 3.24)
+			}
+			return true, nil
+		}, func() *strategy.StrategyContext { return s.context }),
 
 		// 持续检查是否进入结算阶段
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -282,7 +292,7 @@ func (s *Sbsc2Strategy) handleScence5() []script.Operation {
 		s.script.ChangeCameraAngleForX(x, y, 92, 3.24),
 		s.script.Move([]string{"w", "shift"}, 5_000),
 		s.script.Wait(1000),
-		s.script.MouseClient(),
+		s.script.MouseClick(),
 		s.script.Wait(400),
 		s.script.MoveAndKeep([]string{"d", "shift"}, 50_000, 1000, func(sctx *strategy.StrategyContext) (bool, error) {
 			if !s.IsEnable() {
