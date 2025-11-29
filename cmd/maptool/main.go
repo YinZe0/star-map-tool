@@ -8,6 +8,8 @@ import (
 	"star-map-tool/internal/game"
 	"star-map-tool/internal/listener"
 	"star-map-tool/internal/strategy"
+	"star-map-tool/internal/strategy/strategies/farm60"
+	"star-map-tool/internal/strategy/strategies/hljs2"
 	"star-map-tool/internal/strategy/strategies/sbsc2"
 	"star-map-tool/internal/strategy/strategies/yscx2"
 	"syscall"
@@ -37,12 +39,18 @@ const Title string = "星痕共鸣-S2刷图工具"
 
 var Options []Config = []Config{
 	{Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
-	{Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "无"},
+	{Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	{Map: "荒灵祭所", Mode: "困难", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	// {Map: "无音之都", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"}, // 副本有BUG，吃不到球造成团灭
+	{Map: "虫茧", Mode: "60", Times: 999, Timeout: 0, Interval: 1, Description: "需自行前往60虫茧外, 开启H后再启用副本方案"},
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
 	registry.Register(sbsc2.NewSbsc2Strategy())
 	registry.Register(yscx2.NewYscx2Strategy())
+	registry.Register(hljs2.NewHljs2Strategy())
+	// registry.Register(wyzd2.NewWyzd2Strategy())
+	registry.Register(farm60.NewFarm60Strategy())
 }
 
 func main() {
@@ -143,6 +151,7 @@ func showReadMe() {
 	fmt.Println("- 请通过Github下载已发布的exe程序,以防不明途径来源软件的病毒攻击")
 	fmt.Println("- 由于需要调整游戏程序窗体大小,需右键以管理员身份运行")
 	fmt.Println("- 请将游戏改为任意分辨率窗口化")
+	fmt.Println("- 请关闭自动翻越障碍物")
 	fmt.Println("- 设置自动攻击时,尽量不要设置长时间在场的幻想技能,可能会遮挡目标识别")
 	fmt.Println("- 设置 > 画面 > 表现设置 (所有内容改为关闭、极简)")
 	fmt.Println("- 设置 > 操控 > PC 操作设置 (镜头水平灵敏度、镜头垂直灵敏度=3)")
@@ -151,7 +160,7 @@ func showReadMe() {
 	fmt.Println("- 程序完全基于图像识别进行, 使用时切换窗口会影响副本流程;")
 	fmt.Println("- 程序使用时会占用键盘、鼠标, 使用期间自行操控可能遇到程序抢手现象;")
 	fmt.Println("- 使用结束后, 请按正常流程退出本软件 (按下F10 -> 等待F10执行结束 -> 关闭命令窗口);")
-	fmt.Println("- 退出本软件后, 如果遇到键盘、鼠标的不合理行为, 可通过切换窗口/重启/注销电脑解决;")
+	fmt.Println("- 退出本软件后, 如果遇到键盘的不合理行为, 可尝试逐个按下shift、ctrl、w、a、s、d解决;")
 	fmt.Println("- 不同的副本有各自的职业要求, 请在选择地图后查看详情描述, 未按要求进行会降低刷图成功率;")
 	fmt.Printf("\n\n")
 }
@@ -162,7 +171,7 @@ func showMapDescripion(config Config) {
 		description = config.Description
 	}
 
-	fmt.Printf("本地图需注意: %s\n", description)
+	fmt.Printf("本地图需注意: %s\n\n", description)
 }
 
 func SetConsoleTitle(title string) {

@@ -46,7 +46,13 @@ func (e *Executor) Execute(config *ExecutionConfig, strategy Strategy, data inte
 		start := time.Now()
 		log.Printf("[执行器] 开始执行第%d轮\n", e.result.times+1)
 
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		var ctx context.Context
+		var cancel context.CancelFunc
+		if config.Timeout > 0 {
+			ctx, cancel = context.WithTimeout(context.Background(), timeout)
+		} else {
+			ctx, cancel = context.WithCancel(context.Background())
+		}
 		defer cancel()
 
 		sctx := NewStrategyContext(config.Game)
