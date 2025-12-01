@@ -13,7 +13,7 @@ func NewSelector(registry *Registry) *Selector {
 }
 
 func (s *Selector) Select(name string, mode string) *Strategy {
-	strategy, ok := s.registry.GetStrategy(name)
+	strategy, ok := s.registry.GetStrategy(name, mode)
 	if !ok {
 		panic("当前选择的地图尚未支持!")
 	}

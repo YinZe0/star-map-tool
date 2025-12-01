@@ -208,7 +208,12 @@ func (s *StrategyImpl) handleScence5() []script.Operation {
 func (s *StrategyImpl) handleScence4() []script.Operation {
 	return []script.Operation{
 		s.script.Log(s.GetName(), s.GetMode(), "执行第4个关卡(特征:蜘蛛)"),
-		s.script.Move([]string{"a", "shift"}, 8_500),
+		s.script.Move([]string{"a"}, 200),
+		s.script.TapOnce("e"),
+		s.script.Wait(600),
+		s.script.TapOnce("e"),
+		s.script.Wait(1000),
+		s.script.Move([]string{"a", "shift"}, 3500),
 		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
 			s.StopDeathCheck(sc)
 			s.script.Move([]string{"w"}, 4_000)()
@@ -329,21 +334,6 @@ func (s *StrategyImpl) handleScence1() []script.Operation {
 		s.script.Wait(2000),
 
 		s.script.Move([]string{"w", "shift"}, 4000),
-		// s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-		// 	s.StopDeathCheck(sc)
-		// 	utils.NewTicker(40*time.Second, 1*time.Second, func() (bool, error) {
-		// 		if !s.IsEnable() {
-		// 			return false, errors.New("策略已停止")
-		// 		}
-		// 		_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
-		// 		if ok {
-		// 			robotgo.MoveClick(1123, 700)
-		// 		}
-		// 		return false, nil
-		// 	}, true)
-		// 	s.StartDeathCheck(sc)
-		// 	return true, nil
-		// }, func() *strategy.StrategyContext { return s.context }),
 		s.script.Move([]string{"s"}, 1000),
 		s.script.ChangeCameraAngleForX(x, y, -70, 3.24),
 
@@ -433,6 +423,7 @@ func (s *StrategyImpl) goToDungeon() []script.Operation {
 		s.script.MouseDragSmooth(946, 726, 2.0),
 		s.script.Wait(200),
 		s.script.MouseMoveClick(464, 735),
+		s.script.Wait(100),
 		// 进入副本
 		s.script.MouseMoveClick(1000, 690),
 		s.script.Wait(200),

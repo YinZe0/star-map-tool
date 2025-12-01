@@ -1,5 +1,7 @@
 package strategy
 
+import "fmt"
+
 type Registry struct {
 	strategies map[string]Strategy
 }
@@ -11,11 +13,13 @@ func NewRegistry() *Registry {
 }
 
 func (r *Registry) Register(strategy Strategy) {
-	r.strategies[strategy.GetName()] = strategy
+	key := fmt.Sprintf("%s-%s", strategy.GetName(), strategy.GetMode())
+	r.strategies[key] = strategy
 }
 
-func (r *Registry) GetStrategy(name string) (*Strategy, bool) {
-	strategy, ok := r.strategies[name]
+func (r *Registry) GetStrategy(name string, mode string) (*Strategy, bool) {
+	key := fmt.Sprintf("%s-%s", name, mode)
+	strategy, ok := r.strategies[key]
 	return &strategy, ok
 }
 

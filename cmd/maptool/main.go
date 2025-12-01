@@ -35,8 +35,9 @@ type Config struct {
 const Title string = "星痕共鸣-S2刷图工具"
 
 var Options []Config = []Config{
-	{Map: "岩蛇巢穴", Mode: "大师-难度1", Times: 999, Timeout: 17, Interval: 10, Description: "请让出输出位，带上寂灭，带上野猪!"},
-	// {Map: "荒灵祭所", Mode: "大师-难度1", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	// {Map: "衰败深处", Mode: "大师1", Times: 999, Timeout: 12, Interval: 10, Description: "请让出治疗位，带上寂灭!"},
+	{Map: "岩蛇巢穴", Mode: "大师1", Times: 999, Timeout: 17, Interval: 10, Description: "请让出输出位，带上寂灭，带上野猪!"},
+	// {Map: "荒灵祭所", Mode: "大师1", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
 	// {Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
 	// {Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
 	// {Map: "荒灵祭所", Mode: "困难", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
@@ -45,9 +46,11 @@ var Options []Config = []Config{
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
+	// registry.Register(sheep3.NewStrategyImpl())
+	registry.Register(snake3.NewStrategyImpl())
+
 	// registry.Register(sheep2.NewStrategyImpl())
 	// registry.Register(snake2.NewStrategyImpl())
-	registry.Register(snake3.NewStrategyImpl())
 	// registry.Register(clan2.NewStrategyImpl())
 	// registry.Register(clan3.NewStrategyImpl())
 	// registry.Register(robot2.NewStrategyImpl())
