@@ -8,10 +8,7 @@ import (
 	"star-map-tool/internal/game"
 	"star-map-tool/internal/listener"
 	"star-map-tool/internal/strategy"
-	"star-map-tool/internal/strategy/strategies/farm60"
-	"star-map-tool/internal/strategy/strategies/hljs2"
-	"star-map-tool/internal/strategy/strategies/sbsc2"
-	"star-map-tool/internal/strategy/strategies/yscx2"
+	"star-map-tool/internal/strategy/strategies/yscx3"
 	"syscall"
 	"time"
 	"unsafe"
@@ -38,19 +35,23 @@ type Config struct {
 const Title string = "星痕共鸣-S2刷图工具"
 
 var Options []Config = []Config{
-	{Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
-	{Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
-	{Map: "荒灵祭所", Mode: "困难", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	{Map: "岩蛇巢穴", Mode: "大师-难度1", Times: 999, Timeout: 17, Interval: 10, Description: "请让出输出位，带上寂灭，带上野猪!"},
+	// {Map: "荒灵祭所", Mode: "大师-难度1", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	// {Map: "衰败深处", Mode: "困难", Times: 999, Timeout: 10, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	// {Map: "岩蛇巢穴", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
+	// {Map: "荒灵祭所", Mode: "困难", Times: 999, Timeout: 9, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"},
 	// {Map: "无音之都", Mode: "困难", Times: 999, Timeout: 12, Interval: 10, Description: "请让出奶位, 部分环节存在奶量压力!"}, // 副本有BUG，吃不到球造成团灭
-	{Map: "虫茧", Mode: "60", Times: 999, Timeout: 0, Interval: 1, Description: "需自行前往60虫茧外, 开启H后再启用副本方案"},
+	// {Map: "虫茧", Mode: "60", Times: 999, Timeout: 0, Interval: 1, Description: "需自行前往60虫茧外, 开启H后再启用副本方案"},
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
-	registry.Register(sbsc2.NewSbsc2Strategy())
-	registry.Register(yscx2.NewYscx2Strategy())
-	registry.Register(hljs2.NewHljs2Strategy())
+	// registry.Register(sbsc2.NewSbsc2Strategy())
+	// registry.Register(yscx2.NewYscx2Strategy())
+	registry.Register(yscx3.NewYscx3Strategy())
+	// registry.Register(hljs2.NewHljs2Strategy())
+	// registry.Register(hljs3.NewHljs3Strategy())
 	// registry.Register(wyzd2.NewWyzd2Strategy())
-	registry.Register(farm60.NewFarm60Strategy())
+	// registry.Register(farm60.NewFarm60Strategy())
 }
 
 func main() {
@@ -139,7 +140,7 @@ func parseScan() Config {
 		}
 	}
 	option.Times = times
-	fmt.Printf("\n\n")
+	fmt.Printf("\n")
 
 	return option
 }

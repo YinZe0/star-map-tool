@@ -37,6 +37,7 @@ type Script interface {
 	MouseClick() Operation
 	MouseMove(x, Y int) Operation
 	MouseMoveClick(x, y int) Operation
+	MouseDragSmooth(x int, y int, speed float32) Operation
 	ChangeCameraAngleForX(x int, y int, angle int, baseline float32) Operation
 	ChangeCameraAngleForY(x int, y int, angle int, baseline float32) Operation
 
@@ -169,6 +170,13 @@ func (s *DefaultScript) MouseMove(x, Y int) Operation {
 func (s *DefaultScript) MouseMoveClick(x, y int) Operation {
 	return func() bool {
 		robotgo.MoveClick(x, y)
+		return true
+	}
+}
+
+func (s *DefaultScript) MouseDragSmooth(x int, y int, speed float32) Operation {
+	return func() bool {
+		robotgo.DragSmooth(x, y, speed)
 		return true
 	}
 }

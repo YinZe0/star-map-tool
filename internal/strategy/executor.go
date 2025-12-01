@@ -66,6 +66,7 @@ func (e *Executor) Execute(config *ExecutionConfig, strategy Strategy, data inte
 		elapsed := time.Since(start)
 		log.Printf("[执行器] 本轮耗时%d秒", int(elapsed.Seconds()))
 		log.Printf("[执行器] 已执行%d轮 成功%d轮 失败%d轮\n", e.result.times, e.result.success, e.result.fail)
+		time.Sleep(6 * time.Second)
 		time.Sleep(config.Interval)
 	}
 }
