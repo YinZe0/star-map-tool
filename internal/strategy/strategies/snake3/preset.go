@@ -1,4 +1,4 @@
-package yscx3
+package snake3
 
 import (
 	"image"

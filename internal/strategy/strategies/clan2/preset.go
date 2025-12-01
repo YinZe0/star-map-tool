@@ -1,4 +1,4 @@
-package hljs2
+package clan2
 
 import (
 	"image"

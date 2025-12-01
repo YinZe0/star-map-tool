@@ -1,4 +1,4 @@
-package sbsc2
+package sheep2
 
 import (
 	"context"
@@ -23,7 +23,7 @@ var classes = []string{"BOSS_REST", "KEY_FLOWER", "KEY_MOON", "KEY_LEAF", "KEY_S
 
 // -------------------------------------------------- 应对BOSS战（找墙体） ----------------------------------------------------
 
-func GotoWall(s *Sbsc2Strategy, sctx *strategy.StrategyContext, direction int, duration int) bool {
+func GotoWall(s *StrategyImpl, sctx *strategy.StrategyContext, direction int, duration int) bool {
 	log.Printf("[%s-%s] 正在前往任务门位置...\n", s.GetName(), s.GetMode())
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(duration)*time.Millisecond)
@@ -80,7 +80,7 @@ func GotoWall(s *Sbsc2Strategy, sctx *strategy.StrategyContext, direction int, d
 	}
 }
 
-func findDirectionOfWall(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (int, bool) {
+func findDirectionOfWall(s *StrategyImpl, sctx *strategy.StrategyContext) (int, bool) {
 	x, y := robotgo.Location()
 
 	img, _ := sctx.Game.GetScreenshotMatRGB()
@@ -122,7 +122,7 @@ func findDirectionOfWall(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (int,
 
 // -------------------------------------------------- 应对BOSS战（找钥匙） ----------------------------------------------------
 
-func GotoTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext, duration int) bool {
+func GotoTaskKey(s *StrategyImpl, sctx *strategy.StrategyContext, duration int) bool {
 	log.Printf("[%s-%s] 正在前往任务钥匙位置...\n", s.GetName(), s.GetMode())
 
 	direction := sctx.Attrs["KeyDirection"].(int)
@@ -194,7 +194,7 @@ func GotoTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext, duration int)
 	}
 }
 
-func findTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext, targetList []int) bool {
+func findTaskKey(s *StrategyImpl, sctx *strategy.StrategyContext, targetList []int) bool {
 	// 截图、dnn识别目标
 	mat, _ := sctx.Game.GetScreenshotMatRGB()
 	defer mat.Close()
@@ -204,7 +204,7 @@ func findTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext, targetList []
 	return ok
 }
 
-func findDirectionOfTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (int, int, error) {
+func findDirectionOfTaskKey(s *StrategyImpl, sctx *strategy.StrategyContext) (int, int, error) {
 	x, y := robotgo.Location()
 
 	script.Scroll(20, "up")
@@ -222,7 +222,7 @@ func findDirectionOfTaskKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (i
 	return direction, bossKeyClassId, nil
 }
 
-func findDirectionOfTaskKey0(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (int, int, error) {
+func findDirectionOfTaskKey0(s *StrategyImpl, sctx *strategy.StrategyContext) (int, int, error) {
 	_, bossKeyClassId, err := findBossKey(s, sctx)
 	if err != nil {
 		return -1, -1, err
@@ -314,7 +314,7 @@ func findDirectionOfTaskKey0(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (
 
 // -------------------------------------------------- 应对BOSS战（找BOSS） ----------------------------------------------------
 
-func findAndFaceTheBoss(s *Sbsc2Strategy, sctx *strategy.StrategyContext, angle int) bool {
+func findAndFaceTheBoss(s *StrategyImpl, sctx *strategy.StrategyContext, angle int) bool {
 	x, y := robotgo.Location()
 
 	var boss image.Rectangle
@@ -351,7 +351,7 @@ func findAndFaceTheBoss(s *Sbsc2Strategy, sctx *strategy.StrategyContext, angle 
 	return true
 }
 
-func findBoss(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (image.Rectangle, error) {
+func findBoss(s *StrategyImpl, sctx *strategy.StrategyContext) (image.Rectangle, error) {
 	// 要求已经面对BOSS
 	mat, _ := sctx.Game.GetScreenshotMatRGB()
 	defer mat.Close()
@@ -370,7 +370,7 @@ func findBoss(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (image.Rectangle
 	return image.Rectangle{}, errors.New("无法识别Boss")
 }
 
-func findBossKey(s *Sbsc2Strategy, sctx *strategy.StrategyContext) (image.Rectangle, int, error) {
+func findBossKey(s *StrategyImpl, sctx *strategy.StrategyContext) (image.Rectangle, int, error) {
 	// 要求已经面对BOSS
 	mat, _ := sctx.Game.GetScreenshotMatRGB()
 	defer mat.Close()

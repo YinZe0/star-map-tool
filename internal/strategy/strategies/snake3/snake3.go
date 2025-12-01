@@ -1,4 +1,4 @@
-package yscx3
+package snake3
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 )
 
 // 策略算是单例的，上下文每次执行都是新的
-type Yscx3Strategy struct {
+type StrategyImpl struct {
 	enable  int32
 	context *strategy.StrategyContext
 
@@ -23,47 +23,47 @@ type Yscx3Strategy struct {
 	script        script.Script
 }
 
-func NewYscx3Strategy() strategy.Strategy {
-	return &Yscx3Strategy{
+func NewStrategyImpl() strategy.Strategy {
+	return &StrategyImpl{
 		enable: 1,
 	}
 }
 
-func (s *Yscx3Strategy) GetName() string {
+func (s *StrategyImpl) GetName() string {
 	return "岩蛇巢穴"
 }
 
-func (s *Yscx3Strategy) GetMode() string {
+func (s *StrategyImpl) GetMode() string {
 	return "大师1"
 }
 
-func (s *Yscx3Strategy) IsEnable() bool {
+func (s *StrategyImpl) IsEnable() bool {
 	return atomic.LoadInt32(&s.enable) == 1
 }
 
-func (s *Yscx3Strategy) Enable() {
+func (s *StrategyImpl) Enable() {
 	atomic.StoreInt32(&s.enable, 1)
 }
 
-func (s *Yscx3Strategy) Disable(reason int32) {
+func (s *StrategyImpl) Disable(reason int32) {
 	// -1: 终止(超时)、-2: 执行失败、-3: 死亡、0: 执行结束、1: 可用
 	atomic.StoreInt32(&s.enable, reason)
 }
 
-func (s *Yscx3Strategy) StartDeathCheck(ctx *strategy.StrategyContext) {
+func (s *StrategyImpl) StartDeathCheck(ctx *strategy.StrategyContext) {
 	atomic.StoreInt32(&ctx.DeathCheckFlag, 1) // 开启死亡检测
 }
 
-func (s *Yscx3Strategy) StopDeathCheck(ctx *strategy.StrategyContext) {
+func (s *StrategyImpl) StopDeathCheck(ctx *strategy.StrategyContext) {
 	atomic.StoreInt32(&ctx.DeathCheckFlag, 0) // 关闭死亡检测
 }
 
-func (s *Yscx3Strategy) Init() {
+func (s *StrategyImpl) Init() {
 	s.colorDetector = detector.NewColorDetector()
 	s.script = script.NewDefaultScript()
 }
 
-func (s *Yscx3Strategy) Execute(sctx *strategy.StrategyContext, data any) bool {
+func (s *StrategyImpl) Execute(sctx *strategy.StrategyContext, data any) bool {
 	s.context = sctx // 每次的策略上下文都是新的
 	s.context.Attrs["START_TIME"] = time.Now()
 	s.Enable()
@@ -82,11 +82,11 @@ func (s *Yscx3Strategy) Execute(sctx *strategy.StrategyContext, data any) bool {
 	return s.run(operationList)
 }
 
-func (s *Yscx3Strategy) Abort(sign string) {
+func (s *StrategyImpl) Abort(sign string) {
 	s.Disable(-1)
 }
 
-func (s *Yscx3Strategy) run(list []script.Operation) bool {
+func (s *StrategyImpl) run(list []script.Operation) bool {
 	for _, op := range list {
 		if !s.IsEnable() {
 			s.exitDungeon()
@@ -103,7 +103,7 @@ func (s *Yscx3Strategy) run(list []script.Operation) bool {
 	return true
 }
 
-func (s *Yscx3Strategy) runDeatchCheck() {
+func (s *StrategyImpl) runDeatchCheck() {
 	// 死亡处理：一般只检测途中，死亡后直接退出（如果不退出需要更复杂的操作去识别、修正行为）
 	running := false
 	for {
@@ -134,7 +134,7 @@ func (s *Yscx3Strategy) runDeatchCheck() {
 	}
 }
 
-func (s *Yscx3Strategy) exitDungeon() {
+func (s *StrategyImpl) exitDungeon() {
 	enable := atomic.LoadInt32(&s.enable)
 	if enable == -2 || enable == -3 {
 		robotgo.Click() // 有可能小月卡弹框
@@ -151,7 +151,7 @@ func (s *Yscx3Strategy) exitDungeon() {
 	}
 }
 
-func (s *Yscx3Strategy) handleBossScence() []script.Operation {
+func (s *StrategyImpl) handleBossScence() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
 		s.script.Wait(6_000),
@@ -185,7 +185,7 @@ func (s *Yscx3Strategy) handleBossScence() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) handleScence5() []script.Operation {
+func (s *StrategyImpl) handleScence5() []script.Operation {
 	return []script.Operation{
 		s.script.Wait(1_000),
 		s.script.Log(s.GetName(), s.GetMode(), "执行第5个关卡(特征:矿车)"),
@@ -205,7 +205,7 @@ func (s *Yscx3Strategy) handleScence5() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) handleScence4() []script.Operation {
+func (s *StrategyImpl) handleScence4() []script.Operation {
 	return []script.Operation{
 		s.script.Log(s.GetName(), s.GetMode(), "执行第4个关卡(特征:蜘蛛)"),
 		s.script.Move([]string{"a", "shift"}, 8_500),
@@ -225,7 +225,7 @@ func (s *Yscx3Strategy) handleScence4() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) handleScence3() []script.Operation {
+func (s *StrategyImpl) handleScence3() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
 		s.script.MouseClick(),
@@ -281,7 +281,7 @@ func (s *Yscx3Strategy) handleScence3() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) handleScence2() []script.Operation {
+func (s *StrategyImpl) handleScence2() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
 		s.script.Wait(1500),
@@ -322,7 +322,7 @@ func (s *Yscx3Strategy) handleScence2() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) handleScence1() []script.Operation {
+func (s *StrategyImpl) handleScence1() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
 		s.script.Log(s.GetName(), s.GetMode(), "执行第1个关卡(特征:蜘蛛)"),
@@ -365,7 +365,7 @@ func (s *Yscx3Strategy) handleScence1() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) startDungeon() []script.Operation {
+func (s *StrategyImpl) startDungeon() []script.Operation {
 	return []script.Operation{
 		s.script.Wait(2000),
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -411,7 +411,7 @@ func (s *Yscx3Strategy) startDungeon() []script.Operation {
 	}
 }
 
-func (s *Yscx3Strategy) goToDungeon() []script.Operation {
+func (s *StrategyImpl) goToDungeon() []script.Operation {
 	return []script.Operation{
 		// 检查是否在地下城入口
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {

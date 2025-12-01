@@ -1,4 +1,4 @@
-package hljs3
+package clan3
 
 import (
 	"image"

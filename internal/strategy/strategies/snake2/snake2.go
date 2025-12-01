@@ -1,4 +1,4 @@
-package hljs3
+package snake2
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 )
 
 // 策略算是单例的，上下文每次执行都是新的
-type Hljs3Strategy struct {
+type StrategyImpl struct {
 	enable  int32
 	context *strategy.StrategyContext
 
@@ -23,47 +23,47 @@ type Hljs3Strategy struct {
 	script        script.Script
 }
 
-func NewHljs3Strategy() strategy.Strategy {
-	return &Hljs3Strategy{
+func NewStrategyImpl() strategy.Strategy {
+	return &StrategyImpl{
 		enable: 1,
 	}
 }
 
-func (s *Hljs3Strategy) GetName() string {
-	return "荒灵祭所"
+func (s *StrategyImpl) GetName() string {
+	return "岩蛇巢穴"
 }
 
-func (s *Hljs3Strategy) GetMode() string {
-	return "大师1"
+func (s *StrategyImpl) GetMode() string {
+	return "困难"
 }
 
-func (s *Hljs3Strategy) IsEnable() bool {
+func (s *StrategyImpl) IsEnable() bool {
 	return atomic.LoadInt32(&s.enable) == 1
 }
 
-func (s *Hljs3Strategy) Enable() {
+func (s *StrategyImpl) Enable() {
 	atomic.StoreInt32(&s.enable, 1)
 }
 
-func (s *Hljs3Strategy) Disable(reason int32) {
+func (s *StrategyImpl) Disable(reason int32) {
 	// -1: 终止(超时)、-2: 执行失败、-3: 死亡、0: 执行结束、1: 可用
 	atomic.StoreInt32(&s.enable, reason)
 }
 
-func (s *Hljs3Strategy) StartDeathCheck(ctx *strategy.StrategyContext) {
+func (s *StrategyImpl) StartDeathCheck(ctx *strategy.StrategyContext) {
 	atomic.StoreInt32(&ctx.DeathCheckFlag, 1) // 开启死亡检测
 }
 
-func (s *Hljs3Strategy) StopDeathCheck(ctx *strategy.StrategyContext) {
+func (s *StrategyImpl) StopDeathCheck(ctx *strategy.StrategyContext) {
 	atomic.StoreInt32(&ctx.DeathCheckFlag, 0) // 关闭死亡检测
 }
 
-func (s *Hljs3Strategy) Init() {
+func (s *StrategyImpl) Init() {
 	s.colorDetector = detector.NewColorDetector()
 	s.script = script.NewDefaultScript()
 }
 
-func (s *Hljs3Strategy) Execute(sctx *strategy.StrategyContext, data any) bool {
+func (s *StrategyImpl) Execute(sctx *strategy.StrategyContext, data any) bool {
 	s.context = sctx // 每次的策略上下文都是新的
 	s.context.Attrs["START_TIME"] = time.Now()
 	s.Enable()
@@ -81,11 +81,11 @@ func (s *Hljs3Strategy) Execute(sctx *strategy.StrategyContext, data any) bool {
 	return s.run(operationList)
 }
 
-func (s *Hljs3Strategy) Abort(sign string) {
+func (s *StrategyImpl) Abort(sign string) {
 	s.Disable(-1)
 }
 
-func (s *Hljs3Strategy) run(list []script.Operation) bool {
+func (s *StrategyImpl) run(list []script.Operation) bool {
 	for _, op := range list {
 		if !s.IsEnable() {
 			s.exitDungeon()
@@ -102,7 +102,7 @@ func (s *Hljs3Strategy) run(list []script.Operation) bool {
 	return true
 }
 
-func (s *Hljs3Strategy) runDeatchCheck() {
+func (s *StrategyImpl) runDeatchCheck() {
 	// 死亡处理：一般只检测途中，死亡后直接退出（如果不退出需要更复杂的操作去识别、修正行为）
 	running := false
 	for {
@@ -133,7 +133,7 @@ func (s *Hljs3Strategy) runDeatchCheck() {
 	}
 }
 
-func (s *Hljs3Strategy) exitDungeon() {
+func (s *StrategyImpl) exitDungeon() {
 	enable := atomic.LoadInt32(&s.enable)
 	if enable == -2 || enable == -3 {
 		robotgo.Click() // 有可能小月卡弹框
@@ -150,23 +150,23 @@ func (s *Hljs3Strategy) exitDungeon() {
 	}
 }
 
-func (s *Hljs3Strategy) handleBossScence() []script.Operation {
+func (s *StrategyImpl) handleBossScence() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
+		s.script.Wait(6_000),
 		s.script.Log(s.GetName(), s.GetMode(), "执行第Boss关卡"),
-		s.script.Wait(2000),
+		s.script.TapOnce("h"),
 		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			return utils.NewTicker(10*time.Minute, 300*time.Millisecond, func() (bool, error) {
+			utils.NewTicker(10*time.Second, 1000*time.Millisecond, func() (bool, error) {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetBossHealth(*sc.Game, s.colorDetector)
-				if !ok {
-					script.ChangeCameraAngleForX(x, y, -50, 3.24)
-				}
-				return ok, nil
-			}, false)
+				script.ChangeCameraAngleForX(x, y, -45, 3.24)
+				return false, nil
+			}, true)
+			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
+
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
 			return utils.NewTicker(10*time.Minute, 1*time.Second, func() (bool, error) {
 				if !s.IsEnable() {
@@ -176,6 +176,9 @@ func (s *Hljs3Strategy) handleBossScence() []script.Operation {
 				if ok { // 人机打的太慢了
 					robotgo.MoveClick(1123, 700)
 					sleeper.Sleep(6_000)
+					for range 7 {
+						script.ChangeCameraAngleForX(x, y, -45, 3.24)
+					}
 				}
 				// 不再检查boss血条，这个图环境干扰容易误判
 				_, _, ok = GetNextArea(*sctx.Game, s.colorDetector)
@@ -191,159 +194,154 @@ func (s *Hljs3Strategy) handleBossScence() []script.Operation {
 	}
 }
 
-func (s *Hljs3Strategy) handleScence4() []script.Operation {
-	x, y := robotgo.Location()
+func (s *StrategyImpl) handleScence4() []script.Operation {
 	return []script.Operation{
-		s.script.Wait(500),
-		s.script.Log(s.GetName(), s.GetMode(), "执行第4个关卡(特征:人型)"),
-		s.script.Move([]string{"w", "shift"}, 12_000),
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			s.StopDeathCheck(sc)
-			utils.NewTicker(40*time.Second, 1*time.Second, func() (bool, error) {
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
-				if ok {
-					robotgo.MoveClick(1123, 700)
-					sleeper.Sleep(6_000)
-				}
-				return false, nil
-			}, true)
-			s.StartDeathCheck(sc)
-			return true, nil
-		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.Move([]string{"s", "shift"}, 3_000),
-
-		s.script.Wait(700),
-		s.script.TapOnce("f"),
 		s.script.Wait(1_000),
-		s.script.ChangeCameraAngleForX(x, y, 160, 3.24),
-		s.script.Wait(1_000),
-		s.script.Move([]string{"w", "shift"}, 1_000),
-		s.script.Wait(700),
-		s.script.TapOnce("f"),
-		s.script.Wait(2_000),
-		// 后面的逻辑不需要检测死亡
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			s.StopDeathCheck(sc)
-			return true, nil
-		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.Move([]string{"a", "shift"}, 4_000),
-		s.script.TapOnce("h"),
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			return utils.NewTicker(10*time.Minute, 300*time.Millisecond, func() (bool, error) {
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				_, _, ok := GetBossConditionArea(*sc.Game, s.colorDetector)
-				return ok, nil
-			}, false)
-		}, func() *strategy.StrategyContext { return s.context }),
-	}
-}
+		s.script.Log(s.GetName(), s.GetMode(), "执行第4个关卡(特征:矿车)"),
 
-func (s *Hljs3Strategy) handleScence3() []script.Operation {
-	x, y := robotgo.Location()
-	return []script.Operation{
-		s.script.Log(s.GetName(), s.GetMode(), "执行第3个关卡(特征:野猪)"),
-		s.script.TapOnce("f"),
-		s.script.Move([]string{"w"}, 4_000),
-		s.script.Move([]string{"d", "shift"}, 4_000),
 		s.script.Move([]string{"a", "shift"}, 500),
-		s.script.Move([]string{"w"}, 200),
+		s.script.TapOnce("f"),
+		s.script.Wait(50_000),
 		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			s.StopDeathCheck(sc)
-			utils.NewTicker(35*time.Second, 1*time.Second, func() (bool, error) {
+			return utils.NewTicker(20*time.Second, 1*time.Second, func() (bool, error) {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
-				if ok {
-					robotgo.MoveClick(1123, 700)
-					sleeper.Sleep(6_000)
-				}
-				return false, nil
+				_, _, ok := GetPlayerHealthArea(*sc.Game, s.colorDetector)
+				return !ok, nil
 			}, true)
-			s.StartDeathCheck(sc)
-			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.Move([]string{"d", "shift"}, 4_000),
-		s.script.ChangeCameraAngleForX(x, y, -48, 3.24),
+		s.script.Log(s.GetName(), s.GetMode(), "矿车环节结束,正在进入Boss战..."),
 	}
 }
 
-func (s *Hljs3Strategy) handleScence2() []script.Operation {
+func (s *StrategyImpl) handleScence3() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
-		s.script.Log(s.GetName(), s.GetMode(), "执行第2个关卡(特征:人型)"),
-		s.script.Wait(1000),
-		// s.script.ChangeCameraAngleForX(x, y, -90, 3.24),
-		s.script.Wait(800),
-		s.script.Move([]string{"a", "shift"}, 4_000),
-		s.script.ChangeCameraAngleForX(x, y, 90, 3.24),
+		s.script.MouseClick(),
+		// s.script.Wait(12_000), // 这里等蜥蜴跟过来，暂时弃用（选择分开打确保成功率）
+		s.script.Wait(600),
+		s.script.Log(s.GetName(), s.GetMode(), "执行第3个关卡(特征:蜘蛛)"),
+
+		// 跑到门旁边
+		s.script.ChangeCameraAngleForX(x, y, -87, 3.24),
+		s.script.Move([]string{"w", "shift"}, 3_000),
+		s.script.ChangeCameraAngleForX(x, y, 30, 3.24),
 		s.script.Move([]string{"s", "shift"}, 4_000),
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			s.StopDeathCheck(sc)
-			utils.NewTicker(45*time.Second, 1*time.Second, func() (bool, error) { // 这里会出一个暴怒
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
-				if ok {
-					robotgo.MoveClick(1123, 700)
-				}
-				return false, nil
-			}, true)
-			s.StartDeathCheck(sc)
-			return true, nil
-		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.Move([]string{"w", "shift"}, 5_000),
-		s.script.Wait(700),
-	}
-}
+		s.script.Move([]string{"s"}, 5_000),
+		s.script.Move([]string{"s"}, 5_000),
+		s.script.Move([]string{"s"}, 5_000),
+		s.script.Move([]string{"s"}, 5_000),
+		// s.script.Wait(25_000),
+		// s.script.Move([]string{"w", "shift"}, 6_000),
+		// s.script.Move([]string{"w", "shift"}, 12_000),
+		s.script.ChangeCameraAngleForX(x, y, -24, 3.24),
+		s.script.Move([]string{"w", "shift"}, 8_000),
+		s.script.Move([]string{"d", "shift"}, 1_000),
+		s.script.Wait(15_000),
 
-func (s *Hljs3Strategy) handleScence1() []script.Operation {
-	x, y := robotgo.Location()
-	return []script.Operation{
-		s.script.Log(s.GetName(), s.GetMode(), "执行第1个关卡(特征:野猪)"),
-		s.script.Wait(2000),
+		// 门左边矫正位置
+		s.script.Move([]string{"w", "a", "shift"}, 2_000),
+		s.script.Move([]string{"s"}, 2_600),
+		s.script.ChangeCameraAngleForX(x, y, 90, 3.24),
 
-		s.script.Move([]string{"w", "shift"}, 2800),
-		s.script.Move([]string{"d", "shift"}, 3500),
-		s.script.Move([]string{"d", "s", "shift"}, 3000),
-		s.script.ChangeCameraAngleForX(x, y, -70, 3.24),
-
-		s.script.Wait(40_000),
-		s.script.MoveAndOnce([]string{"w", "shift"}, 4_000, func(sc *strategy.StrategyContext) (bool, error) {
+		// 进入凹槽
+		s.script.MoveAndOnce([]string{"w", "shift"}, 4500, func(sctx *strategy.StrategyContext) (bool, error) {
 			robotgo.KeyTap("e")
 			sleeper.SleepBusyLoop(600)
 			robotgo.KeyTap("e")
-			sleeper.Sleep(600)
+			sleeper.Sleep(1000)
 
 			robotgo.KeyUp("shift")
 			robotgo.KeyDown("shift")
 			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			robotgo.KeyDown("w")
-			sleeper.SleepBusyLoop(500)
-			robotgo.KeyDown("shift")
-			utils.NewTicker(7700*time.Millisecond, 1200*time.Millisecond, func() (bool, error) {
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				robotgo.KeyTap("space")
-				return false, nil
-			}, true)
-			robotgo.KeyUp("w")
+		s.script.Move([]string{"w", "shift"}, 2_000),
+		s.script.Move([]string{"w", "a", "shift"}, 2_000),
+		s.script.Wait(20_000),
+
+		// 退出凹槽
+		s.script.MoveAndOnce([]string{"s", "shift"}, 2_900, func(sc *strategy.StrategyContext) (bool, error) {
+			sleeper.Sleep(1200)
+			robotgo.KeyTap("space")
+			sleeper.SleepBusyLoop(400)
+			robotgo.KeyTap("space")
+			return false, nil
+		}, func() *strategy.StrategyContext { return s.context }),
+		s.script.Move([]string{"a", "shift"}, 2_000),
+		s.script.ExecTask(func(scxt *strategy.StrategyContext) (bool, error) {
+			s.StopDeathCheck(scxt)
+			return true, nil
+		}, func() *strategy.StrategyContext { return s.context }),
+		s.script.TapOnce("f"),
+	}
+}
+
+func (s *StrategyImpl) handleScence2() []script.Operation {
+	x, y := robotgo.Location()
+	return []script.Operation{
+		s.script.Log(s.GetName(), s.GetMode(), "执行第2个关卡(特征:蜥蜴)"),
+		s.script.Wait(30_000),
+
+		s.script.Move([]string{"w", "shift"}, 600),
+		s.script.Wait(3_000),
+		s.script.Move([]string{"w", "shift"}, 7000),
+		s.script.ChangeCameraAngleForX(x, y, -135, 3.24),
+		s.script.Wait(48_000), // 不能把蜥蜴直接拉到最后,最后一波容易被烫死
+
+		s.script.MoveAndOnce([]string{"w", "shift"}, 8000, func(sctx *strategy.StrategyContext) (bool, error) {
+			robotgo.KeyTap("e")
+			sleeper.SleepBusyLoop(600)
+			robotgo.KeyTap("e")
+			sleeper.Sleep(1000)
+
+			// 游戏特性: e之后不跟shift，会变为走路
 			robotgo.KeyUp("shift")
+			robotgo.KeyDown("shift")
 			return true, nil
 		}, func() *strategy.StrategyContext { return s.context }),
 	}
 }
 
-func (s *Hljs3Strategy) startDungeon() []script.Operation {
+func (s *StrategyImpl) handleScence1() []script.Operation {
+	x, y := robotgo.Location()
+	return []script.Operation{
+		s.script.Log(s.GetName(), s.GetMode(), "执行第1个关卡(特征:蜘蛛)"),
+		s.script.Wait(2000),
+
+		s.script.Move([]string{"w", "shift"}, 4000),
+		s.script.Wait(28_000), // 32_000
+		s.script.Move([]string{"s"}, 1000),
+		s.script.ChangeCameraAngleForX(x, y, -70, 3.24),
+
+		s.script.MoveAndOnce([]string{"w", "shift"}, 3500, func(sctx *strategy.StrategyContext) (bool, error) {
+			robotgo.KeyTap("e")
+			sleeper.SleepBusyLoop(600)
+			robotgo.KeyTap("e")
+			sleeper.Sleep(200)
+			return true, nil
+		}, func() *strategy.StrategyContext { return s.context }),
+		s.script.MouseMove(x, y),
+		s.script.ChangeCameraAngleForX(x, y, -78, 3.24),
+		s.script.MouseClick(),
+		s.script.Wait(600),
+
+		// s.script.Wait(5_000),
+
+		s.script.Move([]string{"w", "shift"}, 13_000),
+		s.script.ChangeCameraAngleForX(x, y, 95, 3.24),
+		// s.script.Wait(4000),
+
+		s.script.Move([]string{"w", "shift"}, 5000),
+		s.script.ChangeCameraAngleForX(x, y, -140, 3.24),
+		s.script.MouseClick(),
+		s.script.Wait(600),
+		s.script.ChangeCameraAngleForX(x, y, 140, 3.24),
+		s.script.ChangeCameraAngleForX(x, y, 90, 3.24),
+	}
+}
+
+func (s *StrategyImpl) startDungeon() []script.Operation {
 	return []script.Operation{
 		s.script.Wait(2000),
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -362,8 +360,7 @@ func (s *Hljs3Strategy) startDungeon() []script.Operation {
 			return ret, err
 		}, func() *strategy.StrategyContext { return s.context }),
 		s.script.Wait(3000),
-		s.script.Move([]string{"d"}, 400),
-		s.script.Move([]string{"w"}, 900),
+		s.script.Move([]string{"w"}, 1200),
 		s.script.TapOnce("f"),
 		s.script.Log(s.GetName(), s.GetMode(), "正在开启地下城..."),
 		s.script.Wait(200),
@@ -390,7 +387,7 @@ func (s *Hljs3Strategy) startDungeon() []script.Operation {
 	}
 }
 
-func (s *Hljs3Strategy) goToDungeon() []script.Operation {
+func (s *StrategyImpl) goToDungeon() []script.Operation {
 	return []script.Operation{
 		// 检查是否在地下城入口
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
@@ -404,15 +401,8 @@ func (s *Hljs3Strategy) goToDungeon() []script.Operation {
 		}, func() *strategy.StrategyContext { return s.context }),
 		s.script.TapOnce("f"),
 		s.script.Wait(200),
-		s.script.MouseMoveClick(121, 272), // 选择大师难度
+		s.script.MouseMoveClick(124, 208),
 		s.script.Wait(200),
-		// 拖拽后选择大师1
-		s.script.MouseMove(514, 732),
-		s.script.Wait(200),
-		s.script.MouseDragSmooth(946, 726, 2.0),
-		s.script.Wait(200),
-		s.script.MouseMoveClick(464, 735),
-		// 进入副本
 		s.script.MouseMoveClick(1000, 690),
 		s.script.Wait(200),
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {

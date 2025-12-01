@@ -8,7 +8,7 @@ import (
 	"star-map-tool/internal/game"
 	"star-map-tool/internal/listener"
 	"star-map-tool/internal/strategy"
-	"star-map-tool/internal/strategy/strategies/yscx3"
+	"star-map-tool/internal/strategy/strategies/snake3"
 	"syscall"
 	"time"
 	"unsafe"
@@ -45,12 +45,12 @@ var Options []Config = []Config{
 }
 
 func RegisterStrategies(registry *strategy.Registry) {
-	// registry.Register(sbsc2.NewSbsc2Strategy())
-	// registry.Register(yscx2.NewYscx2Strategy())
-	registry.Register(yscx3.NewYscx3Strategy())
-	// registry.Register(hljs2.NewHljs2Strategy())
-	// registry.Register(hljs3.NewHljs3Strategy())
-	// registry.Register(wyzd2.NewWyzd2Strategy())
+	// registry.Register(sheep2.NewStrategyImpl())
+	// registry.Register(snake2.NewStrategyImpl())
+	registry.Register(snake3.NewStrategyImpl())
+	// registry.Register(clan2.NewStrategyImpl())
+	// registry.Register(clan3.NewStrategyImpl())
+	// registry.Register(robot2.NewStrategyImpl())
 	// registry.Register(farm60.NewFarm60Strategy())
 }
 

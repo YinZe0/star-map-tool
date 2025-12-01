@@ -1,4 +1,4 @@
-package yscx2
+package snake2
 
 import (
 	"image"
