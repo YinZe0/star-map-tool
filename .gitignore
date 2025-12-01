@@ -1,6 +1,7 @@
 build/
 go.sum
 *.exe
+*.syso
 cmd/maptool/*.png
 cmd/maptool/*.jpg
 

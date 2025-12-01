@@ -152,8 +152,6 @@ func showReadMe() {
 	fmt.Println("声明: 本软件仅供个人学习使用, 代码已在Github开源。")
 	fmt.Println("https://github.com/YinZe0/star-map-tool")
 	fmt.Println("软件使用须知: ")
-	fmt.Println("- 请通过Github下载已发布的exe程序,以防不明途径来源软件的病毒攻击")
-	fmt.Println("- 由于需要调整游戏程序窗体大小,需右键以管理员身份运行")
 	fmt.Println("- 请将游戏改为任意分辨率窗口化")
 	fmt.Println("- 请关闭自动翻越障碍物")
 	fmt.Println("- 设置自动攻击时,尽量不要设置长时间在场的幻想技能,可能会遮挡目标识别")
