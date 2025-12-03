@@ -1,6 +1,8 @@
 package utils
 
-import "image"
+import (
+	"image"
+)
 
 func GetCenter(rect image.Rectangle) image.Point {
 	centerX := rect.Min.X + (rect.Max.X-rect.Min.X)/2
@@ -53,4 +55,18 @@ func MergeRectangles(rectList []image.Rectangle) image.Rectangle {
 		}
 	}
 	return image.Rect(minX, minY, maxX, maxY)
+}
+
+func Offset(rect image.Rectangle, offsetX, offsetY int) image.Rectangle {
+	rect.Min.X += offsetX
+	rect.Min.Y += offsetY
+	rect.Max.X += offsetX
+	rect.Max.Y += offsetY
+	return rect
+}
+
+func Distance(p1, p2 image.Point) float64 {
+	dx := float64(p2.X) - float64(p1.X)
+	dy := float64(p2.Y) - float64(p1.Y)
+	return dx*dx + dy*dy
 }

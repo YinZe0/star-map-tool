@@ -314,7 +314,7 @@ func findDirectionOfTaskKey0(s *StrategyImpl, sctx *strategy.StrategyContext) (i
 
 // -------------------------------------------------- 应对BOSS战（找BOSS） ----------------------------------------------------
 
-func findAndFaceTheBoss(s *StrategyImpl, sctx *strategy.StrategyContext, angle int) bool {
+func findAndFaceBoss(s *StrategyImpl, sctx *strategy.StrategyContext, angle int) bool {
 	x, y := robotgo.Location()
 
 	var boss image.Rectangle

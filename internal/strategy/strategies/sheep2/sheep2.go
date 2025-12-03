@@ -201,7 +201,7 @@ func (s *StrategyImpl) handleBossScence() []script.Operation {
 
 		// 通过转向找到目标钥匙
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
-			if ok := findAndFaceTheBoss(s, sctx, -45); !ok {
+			if ok := findAndFaceBoss(s, sctx, -45); !ok {
 				return false, errors.New("定位BOSS失败")
 			}
 			direction, bossClassId, err := findDirectionOfTaskKey(s, sctx)
@@ -227,7 +227,7 @@ func (s *StrategyImpl) handleBossScence() []script.Operation {
 				angle = -angle
 			}
 
-			if ok := findAndFaceTheBoss(s, sctx, angle); !ok {
+			if ok := findAndFaceBoss(s, sctx, angle); !ok {
 				return false, errors.New("定位BOSS失败")
 			}
 			direction, ok := findDirectionOfWall(s, sctx)

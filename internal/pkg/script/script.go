@@ -268,12 +268,13 @@ func ChangeCameraAngleForX(x int, y int, angle int, baseline float32) {
 	robotgo.KeyDown("alt")
 	robotgo.Toggle("left")
 
-	time.Sleep(time.Duration(50) * time.Millisecond) // 等待上方事件起作用 （键盘和鼠标衔接的地方仍要等待）
+	time.Sleep(time.Duration(100) * time.Millisecond) // 等待上方事件起作用 （键盘和鼠标衔接的地方仍要等待）
 	offsetX := int(float32(angle) * baseline)
 	robotgo.Move(x+offsetX, y)
 
 	robotgo.Toggle("left", "up")
 	robotgo.KeyUp("alt")
+	time.Sleep(time.Duration(100) * time.Millisecond) // 等待上方事件起作用 （键盘和鼠标衔接的地方仍要等待）
 }
 
 func ChangeCameraAngleForY(x int, y int, angle int, baseline float32) {

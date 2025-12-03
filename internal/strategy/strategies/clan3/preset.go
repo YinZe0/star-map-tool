@@ -44,6 +44,22 @@ var (
 	// 右下 - 复活标志(亮)
 	RebirthLightArea  = []int{1104, 686, 1143, 718}
 	RebirthLightColor = []color.RGBA{{0, 10, 210, 0}, {24, 50, 255, 0}}
+
+	// 屏幕中间 - 地面阵法花纹
+	PatternArea  = []int{640, 150, 750, 530}
+	PatternColor = []color.RGBA{{85, 105, 213, 0}, {255, 255, 255, 0}}
+
+	// 屏幕中间 - 地面阵法花纹（使用后）
+	PatternUsedArea  = []int{640, 150, 750, 530}
+	PatternUsedColor = []color.RGBA{{105, 30, 213, 0}, {255, 115, 255, 0}}
+
+	// 屏幕中右 - 地面阵法花纹的交互文字
+	PatternTextArea  = []int{930, 404, 1044, 452}
+	PatternTextColor = []color.RGBA{{0, 0, 0, 0}, {0, 0, 255, 0}}
+
+	// 中上 - 必杀剑技能提示
+	SwordArea  = []int{450, 220, 850, 300}
+	SwordColor = []color.RGBA{{22, 110, 106, 0}, {45, 180, 255, 0}}
 )
 
 // 获取在地下城入口的证明标志
@@ -136,5 +152,41 @@ func GetRebirthLightArea(game game.Game, colorDetector detector.ColorDetector) (
 	defer img.Close()
 
 	param := detector.NewColorDetectParam(img, RebirthLightColor[0], RebirthLightColor[1], 40)
+	return colorDetector.Detect(param)
+}
+
+func GetPatternArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
+	w, h := utils.GetRectSize(PatternArea[0], PatternArea[1], PatternArea[2], PatternArea[3])
+	img, _ := game.GetScreenshotMatRGB(PatternArea[0], PatternArea[1], w, h)
+	defer img.Close()
+
+	param := detector.NewColorDetectParam(img, PatternColor[0], PatternColor[1], 600)
+	return colorDetector.Detect(param)
+}
+
+func GetPatternUsedArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
+	w, h := utils.GetRectSize(PatternUsedArea[0], PatternUsedArea[1], PatternUsedArea[2], PatternUsedArea[3])
+	img, _ := game.GetScreenshotMatRGB(PatternUsedArea[0], PatternUsedArea[1], w, h)
+	defer img.Close()
+
+	param := detector.NewColorDetectParam(img, PatternColor[0], PatternColor[1], 600)
+	return colorDetector.Detect(param)
+}
+
+func GetPatternTextArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
+	w, h := utils.GetRectSize(PatternTextArea[0], PatternTextArea[1], PatternTextArea[2], PatternTextArea[3])
+	img, _ := game.GetScreenshotMatRGB(PatternTextArea[0], PatternTextArea[1], w, h)
+	defer img.Close()
+
+	param := detector.NewColorDetectParam(img, PatternTextColor[0], PatternTextColor[1], 5)
+	return colorDetector.Detect(param)
+}
+
+func GetSwordArea(game game.Game, colorDetector detector.ColorDetector) ([]image.Rectangle, []float64, bool) {
+	w, h := utils.GetRectSize(SwordArea[0], SwordArea[1], SwordArea[2], SwordArea[3])
+	img, _ := game.GetScreenshotMatRGB(SwordArea[0], SwordArea[1], w, h)
+	defer img.Close()
+
+	param := detector.NewColorDetectParam(img, SwordColor[0], SwordColor[1], 100)
 	return colorDetector.Detect(param)
 }

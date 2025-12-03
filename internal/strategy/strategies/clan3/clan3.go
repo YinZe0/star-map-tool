@@ -2,6 +2,7 @@ package clan3
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"star-map-tool/internal/detector"
 	"star-map-tool/internal/pkg/script"
@@ -63,22 +64,162 @@ func (s *StrategyImpl) Init() {
 	s.script = script.NewDefaultScript()
 }
 
+func (s *StrategyImpl) test() []script.Operation {
+	x, y := robotgo.Location()
+	return []script.Operation{
+		s.script.ChangeCameraAngleForY(x, y, 90, 7.8),
+
+		s.script.Move([]string{"w"}, 4000),
+		s.script.MouseClick(),
+		s.script.Wait(1000),
+		s.script.MoveAndOnce([]string{"s"}, 3000, func(sc *strategy.StrategyContext) (bool, error) {
+			robotgo.KeyTap("e")
+			sleeper.SleepBusyLoop(600)
+			robotgo.KeyTap("e")
+			sleeper.Sleep(1000)
+			return true, nil
+		}, func() *strategy.StrategyContext { return s.context }),
+		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
+			robotgo.KeyDown("a")
+			moving := true
+			flag1 := true  // 斩杀匕首的辅助识别
+			flag2 := false // 超度亡魂的辅助识别
+			var flag2Time time.Time
+			for {
+				if !s.IsEnable() {
+					return false, errors.New("x")
+				}
+				sleeper.Sleep(100)
+				// 复活
+				_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
+				if ok {
+					robotgo.MoveClick(1123, 700)
+				}
+				// 检查战斗是否结束
+				if _, _, ok := GetNextArea(*sc.Game, s.colorDetector); ok {
+					break
+				}
+				// 如果还有交互按钮就原地不要动
+				if _, _, ok := GetPatternTextArea(*sc.Game, s.colorDetector); ok {
+					if moving {
+						robotgo.KeyUp("a")
+						robotgo.KeyUp("s")
+						moving = false
+						fmt.Println("检测到交互按钮，原地等待")
+					}
+
+					// 发现匕首继续原地等待，准备格挡
+					_, _, sword := GetSwordArea(*sc.Game, s.colorDetector)
+					_, _, boss := GetBossHealth(*sc.Game, s.colorDetector) // Boss进入超度阶段也会亮红提示，但超度阶段血条会变为灰色
+					fmt.Println(sword, boss)
+					if sword && boss && flag1 {
+						fmt.Println("检测到疑似斩杀技能，即将使用交互")
+						sleeper.Sleep(3000)
+						robotgo.KeyTap("f")
+						sc.Attrs["MoveAt"] = time.Now().Add(10 * time.Second) // 10秒后移动
+						moving = true
+						flag1 = false
+						sleeper.Sleep(12_000)
+					}
+					if sword && !boss {
+						flag2 = true
+						flag2Time = time.Now().Add(40 * time.Second)
+					}
+					if flag2 && flag2Time.Before(time.Now()) {
+						flag1 = true
+					}
+					continue
+				}
+
+				// 活着 且 没有交互键位 => 锯齿形式移动到下一个可交互点位
+				now := time.Now()
+				moveAt := now
+				if v, ok := sc.Attrs["MoveAt"]; ok {
+					moveAt = v.(time.Time)
+				}
+				if moveAt.Before(now) {
+					fmt.Println("向下一个交互点移动", moveAt.Before(now))
+					delete(sc.Attrs, "MoveAt")
+
+					script.ChangeCameraAngleForX(x, y, 45, 3.24)
+					sleeper.Sleep(400)
+					robotgo.KeyDown("a")
+					sleeper.Sleep(2000)
+					robotgo.KeyUp("a")
+					robotgo.KeyDown("s")
+					sleeper.Sleep(3000)
+					robotgo.KeyUp("s")
+					robotgo.KeyDown("a")
+				}
+			}
+			return true, nil
+		}, func() *strategy.StrategyContext { return s.context }),
+	}
+}
+
 func (s *StrategyImpl) Execute(sctx *strategy.StrategyContext, data any) bool {
 	s.context = sctx // 每次的策略上下文都是新的
 	s.context.Attrs["START_TIME"] = time.Now()
 	s.Enable()
-	go s.runDeatchCheck()
+	// go s.runDeatchCheck()
 
 	// 目前无法识别是否到达指定地点，全是按照时间进行的，后续可以追加训练一些标志物识别的模型
-	var operationList []script.Operation
-	operationList = append(operationList, s.goToDungeon()...)
-	operationList = append(operationList, s.startDungeon()...)
-	operationList = append(operationList, s.handleScence1()...)
-	operationList = append(operationList, s.handleScence2()...)
-	operationList = append(operationList, s.handleScence3()...)
-	operationList = append(operationList, s.handleScence4()...)
-	operationList = append(operationList, s.handleBossScence()...)
-	return s.run(operationList)
+	// var operationList []script.Operation
+	// operationList = append(operationList, s.goToDungeon()...)
+	// operationList = append(operationList, s.startDungeon()...)
+	// operationList = append(operationList, s.handleScence1()...)
+	// operationList = append(operationList, s.handleScence2()...)
+	// operationList = append(operationList, s.handleScence3()...)
+	// operationList = append(operationList, s.handleScence4()...)
+	// operationList = append(operationList, s.handleBossScence()...)
+	// return s.run(operationList)
+
+	// getPosFloat := func(t *gocv.Trackbar) float64 {
+	// 	return float64(t.GetPos())
+	// }
+
+	// mat := gocv.IMRead("x1.png", gocv.IMReadColor)
+	// defer mat.Close()
+
+	// param := detector.NewColorDetectParam(mat, PatternColor[0], PatternColor[1], 100)
+	// _, sizeList, ok := s.colorDetector.Detect(param)
+	// fmt.Println(sizeList, ok)
+
+	// wi := gocv.NewWindow("normal")
+	// wt := gocv.NewWindow("threshold")
+	// wt.ResizeWindow(600, 600)
+	// wt.MoveWindow(0, 0)
+	// wi.MoveWindow(600, 0)
+	// wi.ResizeWindow(600, 600)
+
+	// lh := wi.CreateTrackbar("Low H", 360/2)
+	// hh := wi.CreateTrackbar("High H", 255)
+	// ls := wi.CreateTrackbar("Low S", 255)
+	// hs := wi.CreateTrackbar("High S", 255)
+	// lv := wi.CreateTrackbar("Low V", 255)
+	// hv := wi.CreateTrackbar("High V", 255)
+
+	// hsv := gocv.NewMat()
+	// defer hsv.Close()
+	// gocv.CvtColor(mat, &hsv, gocv.ColorBGRToHSV)
+
+	// for {
+	// 	thresholded := gocv.NewMat()
+	// 	gocv.InRangeWithScalar(hsv,
+	// 		gocv.Scalar{Val1: getPosFloat(lh), Val2: getPosFloat(ls), Val3: getPosFloat(lv)},
+	// 		gocv.Scalar{Val1: getPosFloat(hh), Val2: getPosFloat(hs), Val3: getPosFloat(hv)},
+	// 		&thresholded)
+
+	// 	wi.IMShow(hsv)
+	// 	wt.IMShow(thresholded)
+	// 	if wi.WaitKey(1) == 27 || wt.WaitKey(1) == 27 {
+	// 		break
+	// 	}
+	// }
+
+	list := s.test()
+	s.run(list)
+	return true
 }
 
 func (s *StrategyImpl) Abort(sign string) {

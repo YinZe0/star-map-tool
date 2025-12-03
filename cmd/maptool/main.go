@@ -48,11 +48,11 @@ var Options []Config = []Config{
 func RegisterStrategies(registry *strategy.Registry) {
 	// registry.Register(sheep3.NewStrategyImpl())
 	registry.Register(snake3.NewStrategyImpl())
+	// registry.Register(clan3.NewStrategyImpl())
 
 	// registry.Register(sheep2.NewStrategyImpl())
 	// registry.Register(snake2.NewStrategyImpl())
 	// registry.Register(clan2.NewStrategyImpl())
-	// registry.Register(clan3.NewStrategyImpl())
 	// registry.Register(robot2.NewStrategyImpl())
 	// registry.Register(farm60.NewFarm60Strategy())
 }
