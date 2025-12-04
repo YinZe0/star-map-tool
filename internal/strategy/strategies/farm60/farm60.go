@@ -7,6 +7,7 @@ import (
 	"star-map-tool/internal/pkg/sleeper"
 	"star-map-tool/internal/pkg/utils"
 	"star-map-tool/internal/strategy"
+	"star-map-tool/internal/strategy/preset"
 	"sync/atomic"
 	"time"
 
@@ -18,7 +19,6 @@ type Farm60Strategy struct {
 	context *strategy.StrategyContext
 
 	colorDetector detector.ColorDetector
-	dnnDetector   detector.DNNDetector
 	script        script.Script
 }
 
@@ -127,7 +127,7 @@ func (s *Farm60Strategy) execute0() []script.Operation {
 
 				now := time.Now()
 				if now.Hour() == 5 && now.Minute() == 0 && now.Second() < 30 { // 凌晨5点看不到血条就按下esc
-					_, _, ok := GetPlayerHealthArea(*sc.Game, s.colorDetector)
+					_, _, ok := preset.GetPlayerHealthArea(*sc.Game, s.colorDetector)
 					if !ok {
 						sleeper.Sleep(500)
 						robotgo.MoveClick(640, 120)

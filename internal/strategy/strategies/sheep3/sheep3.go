@@ -9,6 +9,7 @@ import (
 	"star-map-tool/internal/pkg/sleeper"
 	"star-map-tool/internal/pkg/utils"
 	"star-map-tool/internal/strategy"
+	"star-map-tool/internal/strategy/preset"
 	"sync/atomic"
 	"time"
 
@@ -128,7 +129,7 @@ func (s *StrategyImpl) runDeatchCheck() {
 			running = true
 		}
 
-		_, _, ok := GetPlayerHealthArea(*s.context.Game, s.colorDetector)
+		_, _, ok := preset.GetPlayerHealthArea(*s.context.Game, s.colorDetector)
 		flag = atomic.LoadInt32(&s.context.DeathCheckFlag)
 		if !ok && flag == 1 { // 已死亡
 			log.Printf("[%s-%s] 未检测到玩家血条,认定为已死亡(即将执行P出逻辑)\n", s.GetName(), s.GetMode())
@@ -183,11 +184,11 @@ func (s *StrategyImpl) handleBossScence() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetRebirthLightArea(*sctx.Game, s.colorDetector)
+				_, _, ok := preset.GetRebirthLightArea(*sctx.Game, s.colorDetector)
 				if ok {
 					robotgo.MoveClick(1123, 700)
 				}
-				_, _, ok = GetBossGrayHealth(*sctx.Game, s.colorDetector)
+				_, _, ok = preset.GetBossGrayHealth(*sctx.Game, s.colorDetector)
 				return ok, nil
 			}, true)
 			return true, nil
@@ -255,7 +256,7 @@ func (s *StrategyImpl) handleBossScence() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetBossHealth(*sctx.Game, s.colorDetector)
+				_, _, ok := preset.GetBossHealth(*sctx.Game, s.colorDetector)
 				if !ok {
 					log.Printf("[%s-%s] 检测到BOSS即将死亡...\n", s.GetName(), s.GetMode())
 				}
@@ -269,7 +270,7 @@ func (s *StrategyImpl) handleBossScence() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetNextArea(*sctx.Game, s.colorDetector)
+				_, _, ok := preset.GetNextArea(*sctx.Game, s.colorDetector)
 				if ok {
 					robotgo.MoveClick(635, 715)
 					sleeper.Sleep(200)
@@ -298,10 +299,10 @@ func (s *StrategyImpl) handleScence5() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				if _, _, ok := GetBossConditionArea(*sc.Game, s.colorDetector); ok {
+				if _, _, ok := preset.GetBossConditionArea(*sc.Game, s.colorDetector); ok {
 					return true, nil
 				}
-				if _, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector); ok {
+				if _, _, ok := preset.GetRebirthLightArea(*sc.Game, s.colorDetector); ok {
 					robotgo.MoveClick(1123, 700)
 				}
 				return false, nil
@@ -331,7 +332,7 @@ func (s *StrategyImpl) handleScence5() []script.Operation {
 			if !s.IsEnable() {
 				return false, errors.New("策略已停止")
 			}
-			_, _, ok := GetPlayerHealthArea(*sctx.Game, s.colorDetector)
+			_, _, ok := preset.GetPlayerHealthArea(*sctx.Game, s.colorDetector)
 			return !ok, nil
 		}, func() *strategy.StrategyContext { return s.context }),
 	}
@@ -490,7 +491,7 @@ func (s *StrategyImpl) startDungeon() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetDungeonExitArea(*sctx.Game, s.colorDetector) // todo: 这里有问题
+				_, _, ok := preset.GetDungeonExitArea(*sctx.Game, s.colorDetector) // todo: 这里有问题
 				return ok, nil
 			}, true)
 			if !ret {
@@ -511,7 +512,7 @@ func (s *StrategyImpl) startDungeon() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetDungeonRunningArea(*sctx.Game, s.colorDetector)
+				_, _, ok := preset.GetDungeonRunningArea(*sctx.Game, s.colorDetector)
 				return ok, nil
 			}, true)
 			if !ret {
@@ -536,7 +537,7 @@ func (s *StrategyImpl) goToDungeon() []script.Operation {
 				if !s.IsEnable() {
 					return false, errors.New("策略已停止")
 				}
-				_, _, ok := GetMainArea(*sctx.Game, s.colorDetector)
+				_, _, ok := preset.GetMainArea(*sctx.Game, s.colorDetector)
 				return ok, nil
 			}, true)
 		}, func() *strategy.StrategyContext { return s.context }),
@@ -555,7 +556,7 @@ func (s *StrategyImpl) goToDungeon() []script.Operation {
 		s.script.MouseMoveClick(1000, 690),
 		s.script.Wait(200),
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
-			if _, sizeList, ok := GetDungeonQueueArea(*sctx.Game, s.colorDetector); !ok || len(sizeList) != 2 {
+			if _, sizeList, ok := preset.GetDungeonQueueArea(*sctx.Game, s.colorDetector); !ok || len(sizeList) != 2 {
 				return false, nil
 			}
 			return true, nil
@@ -564,7 +565,7 @@ func (s *StrategyImpl) goToDungeon() []script.Operation {
 		s.script.MouseMove(0, 0),
 		s.script.Wait(3 * 1000),
 		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
-			if _, sizeList, ok := GetDungeonQueueArea(*sctx.Game, s.colorDetector); ok && len(sizeList) == 2 {
+			if _, sizeList, ok := preset.GetDungeonQueueArea(*sctx.Game, s.colorDetector); ok && len(sizeList) == 2 {
 				log.Printf("[%s-%s] 检测到异常队伍,正在执行退出队伍操作...\n", s.GetName(), s.GetMode())
 				robotgo.KeyTap("esc")
 				script.HandleAbnormalTeam(sctx.Game)
@@ -583,7 +584,7 @@ func (s *StrategyImpl) waitAndAlive(duration time.Duration) script.Operation {
 			if !s.IsEnable() {
 				return false, errors.New("策略已停止")
 			}
-			_, _, ok := GetRebirthLightArea(*sc.Game, s.colorDetector)
+			_, _, ok := preset.GetRebirthLightArea(*sc.Game, s.colorDetector)
 			if ok {
 				robotgo.MoveClick(1123, 700)
 			}
