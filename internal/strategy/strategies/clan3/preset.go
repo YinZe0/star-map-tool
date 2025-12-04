@@ -131,7 +131,7 @@ func GetNextArea(game game.Game, colorDetector detector.ColorDetector) ([]image.
 	defer img.Close()
 
 	// 中间下方 - 下一步 (由于是白灰色的按钮，HSV只取高明度)
-	param := detector.NewColorDetectParam(img, NextColor[0], NextColor[1], 300)
+	param := detector.NewColorDetectParam(img, NextColor[0], NextColor[1], 6500)
 	return colorDetector.Detect(param)
 }
 
@@ -141,7 +141,7 @@ func GetBossConditionArea(game game.Game, colorDetector detector.ColorDetector) 
 	img, _ := game.GetScreenshotMatRGB(BossConditionArea[0], BossConditionArea[1], w, h)
 	defer img.Close()
 
-	param := detector.NewColorDetectParam(img, BossConditionColor[0], BossConditionColor[1], 800)
+	param := detector.NewColorDetectParam(img, BossConditionColor[0], BossConditionColor[1], 6500)
 	return colorDetector.Detect(param)
 }
 

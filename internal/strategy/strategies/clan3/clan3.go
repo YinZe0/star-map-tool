@@ -64,12 +64,102 @@ func (s *StrategyImpl) Init() {
 	s.script = script.NewDefaultScript()
 }
 
-func (s *StrategyImpl) test() []script.Operation {
+func (s *StrategyImpl) Execute(sctx *strategy.StrategyContext, data any) bool {
+	s.context = sctx // 每次的策略上下文都是新的
+	s.context.Attrs["START_TIME"] = time.Now()
+	s.Enable()
+	go s.runDeatchCheck()
+
+	// 目前无法识别是否到达指定地点，全是按照时间进行的，后续可以追加训练一些标志物识别的模型
+	var operationList []script.Operation
+	operationList = append(operationList, s.goToDungeon()...)
+	operationList = append(operationList, s.startDungeon()...)
+	operationList = append(operationList, s.handleScence1()...)
+	operationList = append(operationList, s.handleScence2()...)
+	operationList = append(operationList, s.handleScence3()...)
+	operationList = append(operationList, s.handleScence4()...)
+	operationList = append(operationList, s.handleBossScence()...)
+	return s.run(operationList)
+}
+
+func (s *StrategyImpl) Abort(sign string) {
+	s.Disable(-1)
+}
+
+func (s *StrategyImpl) run(list []script.Operation) bool {
+	for _, op := range list {
+		if !s.IsEnable() {
+			s.exitDungeon()
+			return false
+		}
+		ok := op()
+		if !ok {
+			s.Disable(-2)
+			s.exitDungeon()
+			return false
+		}
+	}
+	s.Disable(0) // 让子线程有停止的机会
+	return true
+}
+
+func (s *StrategyImpl) runDeatchCheck() {
+	// 死亡处理：一般只检测途中，死亡后直接退出（如果不退出需要更复杂的操作去识别、修正行为）
+	running := false
+	for {
+		flag := atomic.LoadInt32(&s.context.DeathCheckFlag)
+		if running && flag == 0 {
+			// 逻辑内关闭死亡检测 - 通常到达BOSS战才会关闭
+			return
+		} else if !s.IsEnable() {
+			// 有其他逻辑中断策略执行，停止死亡检测
+			return
+		} else if flag == 0 {
+			sleeper.Sleep(200)
+			continue
+		}
+		if !running {
+			running = true
+		}
+
+		_, _, ok := GetPlayerHealthArea(*s.context.Game, s.colorDetector)
+		flag = atomic.LoadInt32(&s.context.DeathCheckFlag)
+		if !ok && flag == 1 { // 已死亡
+			log.Printf("[%s-%s] 未检测到玩家血条,认定为已死亡(即将执行P出逻辑)\n", s.GetName(), s.GetMode())
+			running = false
+			s.Disable(-3) // 交给主线程去退出对局
+			return
+		}
+		sleeper.Sleep(200)
+	}
+}
+
+func (s *StrategyImpl) exitDungeon() {
+	enable := atomic.LoadInt32(&s.enable)
+	if enable == -2 || enable == -3 {
+		robotgo.Click() // 有可能小月卡弹框
+		sleeper.Sleep(200)
+
+		// 直接p，死亡状态按p是无效的，如果能退就退了
+		robotgo.KeyTap("p")
+		robotgo.MoveClick(794, 579)
+
+		// p不出去就点死亡时出现的退出按钮
+		robotgo.MoveClick(1179, 67)
+		robotgo.MoveClick(794, 579)
+		log.Printf("[%s-%s] 已执行副本退出逻辑\n", s.GetName(), s.GetMode())
+	}
+}
+
+func (s *StrategyImpl) handleBossScence() []script.Operation {
 	x, y := robotgo.Location()
 	return []script.Operation{
+		s.script.Log(s.GetName(), s.GetMode(), "执行第Boss关卡"),
+		s.script.Wait(2000),
+
 		s.script.ChangeCameraAngleForY(x, y, 90, 7.8),
 
-		s.script.Move([]string{"w"}, 4000),
+		s.script.Move([]string{"w"}, 4300),
 		s.script.MouseClick(),
 		s.script.Wait(1000),
 		s.script.MoveAndOnce([]string{"s"}, 3000, func(sc *strategy.StrategyContext) (bool, error) {
@@ -153,180 +243,6 @@ func (s *StrategyImpl) test() []script.Operation {
 				}
 			}
 			return true, nil
-		}, func() *strategy.StrategyContext { return s.context }),
-	}
-}
-
-func (s *StrategyImpl) Execute(sctx *strategy.StrategyContext, data any) bool {
-	s.context = sctx // 每次的策略上下文都是新的
-	s.context.Attrs["START_TIME"] = time.Now()
-	s.Enable()
-	// go s.runDeatchCheck()
-
-	// 目前无法识别是否到达指定地点，全是按照时间进行的，后续可以追加训练一些标志物识别的模型
-	// var operationList []script.Operation
-	// operationList = append(operationList, s.goToDungeon()...)
-	// operationList = append(operationList, s.startDungeon()...)
-	// operationList = append(operationList, s.handleScence1()...)
-	// operationList = append(operationList, s.handleScence2()...)
-	// operationList = append(operationList, s.handleScence3()...)
-	// operationList = append(operationList, s.handleScence4()...)
-	// operationList = append(operationList, s.handleBossScence()...)
-	// return s.run(operationList)
-
-	// getPosFloat := func(t *gocv.Trackbar) float64 {
-	// 	return float64(t.GetPos())
-	// }
-
-	// mat := gocv.IMRead("x1.png", gocv.IMReadColor)
-	// defer mat.Close()
-
-	// param := detector.NewColorDetectParam(mat, PatternColor[0], PatternColor[1], 100)
-	// _, sizeList, ok := s.colorDetector.Detect(param)
-	// fmt.Println(sizeList, ok)
-
-	// wi := gocv.NewWindow("normal")
-	// wt := gocv.NewWindow("threshold")
-	// wt.ResizeWindow(600, 600)
-	// wt.MoveWindow(0, 0)
-	// wi.MoveWindow(600, 0)
-	// wi.ResizeWindow(600, 600)
-
-	// lh := wi.CreateTrackbar("Low H", 360/2)
-	// hh := wi.CreateTrackbar("High H", 255)
-	// ls := wi.CreateTrackbar("Low S", 255)
-	// hs := wi.CreateTrackbar("High S", 255)
-	// lv := wi.CreateTrackbar("Low V", 255)
-	// hv := wi.CreateTrackbar("High V", 255)
-
-	// hsv := gocv.NewMat()
-	// defer hsv.Close()
-	// gocv.CvtColor(mat, &hsv, gocv.ColorBGRToHSV)
-
-	// for {
-	// 	thresholded := gocv.NewMat()
-	// 	gocv.InRangeWithScalar(hsv,
-	// 		gocv.Scalar{Val1: getPosFloat(lh), Val2: getPosFloat(ls), Val3: getPosFloat(lv)},
-	// 		gocv.Scalar{Val1: getPosFloat(hh), Val2: getPosFloat(hs), Val3: getPosFloat(hv)},
-	// 		&thresholded)
-
-	// 	wi.IMShow(hsv)
-	// 	wt.IMShow(thresholded)
-	// 	if wi.WaitKey(1) == 27 || wt.WaitKey(1) == 27 {
-	// 		break
-	// 	}
-	// }
-
-	list := s.test()
-	s.run(list)
-	return true
-}
-
-func (s *StrategyImpl) Abort(sign string) {
-	s.Disable(-1)
-}
-
-func (s *StrategyImpl) run(list []script.Operation) bool {
-	for _, op := range list {
-		if !s.IsEnable() {
-			s.exitDungeon()
-			return false
-		}
-		ok := op()
-		if !ok {
-			s.Disable(-2)
-			s.exitDungeon()
-			return false
-		}
-	}
-	s.Disable(0) // 让子线程有停止的机会
-	return true
-}
-
-func (s *StrategyImpl) runDeatchCheck() {
-	// 死亡处理：一般只检测途中，死亡后直接退出（如果不退出需要更复杂的操作去识别、修正行为）
-	running := false
-	for {
-		flag := atomic.LoadInt32(&s.context.DeathCheckFlag)
-		if running && flag == 0 {
-			// 逻辑内关闭死亡检测 - 通常到达BOSS战才会关闭
-			return
-		} else if !s.IsEnable() {
-			// 有其他逻辑中断策略执行，停止死亡检测
-			return
-		} else if flag == 0 {
-			sleeper.Sleep(200)
-			continue
-		}
-		if !running {
-			running = true
-		}
-
-		_, _, ok := GetPlayerHealthArea(*s.context.Game, s.colorDetector)
-		flag = atomic.LoadInt32(&s.context.DeathCheckFlag)
-		if !ok && flag == 1 { // 已死亡
-			log.Printf("[%s-%s] 未检测到玩家血条,认定为已死亡(即将执行P出逻辑)\n", s.GetName(), s.GetMode())
-			running = false
-			s.Disable(-3) // 交给主线程去退出对局
-			return
-		}
-		sleeper.Sleep(200)
-	}
-}
-
-func (s *StrategyImpl) exitDungeon() {
-	enable := atomic.LoadInt32(&s.enable)
-	if enable == -2 || enable == -3 {
-		robotgo.Click() // 有可能小月卡弹框
-		sleeper.Sleep(200)
-
-		// 直接p，死亡状态按p是无效的，如果能退就退了
-		robotgo.KeyTap("p")
-		robotgo.MoveClick(794, 579)
-
-		// p不出去就点死亡时出现的退出按钮
-		robotgo.MoveClick(1179, 67)
-		robotgo.MoveClick(794, 579)
-		log.Printf("[%s-%s] 已执行副本退出逻辑\n", s.GetName(), s.GetMode())
-	}
-}
-
-func (s *StrategyImpl) handleBossScence() []script.Operation {
-	x, y := robotgo.Location()
-	return []script.Operation{
-		s.script.Log(s.GetName(), s.GetMode(), "执行第Boss关卡"),
-		s.script.Wait(2000),
-		s.script.ExecTask(func(sc *strategy.StrategyContext) (bool, error) {
-			return utils.NewTicker(10*time.Minute, 300*time.Millisecond, func() (bool, error) {
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				_, _, ok := GetBossHealth(*sc.Game, s.colorDetector)
-				if !ok {
-					script.ChangeCameraAngleForX(x, y, -50, 3.24)
-				}
-				return ok, nil
-			}, false)
-		}, func() *strategy.StrategyContext { return s.context }),
-		s.script.ExecTask(func(sctx *strategy.StrategyContext) (bool, error) {
-			return utils.NewTicker(10*time.Minute, 1*time.Second, func() (bool, error) {
-				if !s.IsEnable() {
-					return false, errors.New("策略已停止")
-				}
-				_, _, ok := GetRebirthLightArea(*sctx.Game, s.colorDetector)
-				if ok { // 人机打的太慢了
-					robotgo.MoveClick(1123, 700)
-					sleeper.Sleep(6_000)
-				}
-				// 不再检查boss血条，这个图环境干扰容易误判
-				_, _, ok = GetNextArea(*sctx.Game, s.colorDetector)
-				if ok {
-					robotgo.MoveClick(635, 715)
-					sleeper.Sleep(200)
-					robotgo.MoveClick(935, 735)
-				}
-				return ok, nil
-			}, false)
 		}, func() *strategy.StrategyContext { return s.context }),
 		s.script.Log(s.GetName(), s.GetMode(), "检测到下一步按钮,正在正常退出副本..."),
 	}
